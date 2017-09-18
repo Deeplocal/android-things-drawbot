@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.deeplocal.drawbot.MainActivity">
+
+    <TextView
+        android:id="@+id/title_textview"
+        android:layout_width="800px"
+        android:layout_height="80px"
+        android:gravity="center"
+        android:text="Android DrawBot"
+        android:textSize="40sp"
+        android:textColor="#000"/>
+
+    <LinearLayout
+        android:id="@+id/controls_layout"
+        android:layout_width="300px"
+        android:layout_height="400px"
+        android:orientation="vertical"
+        android:layout_below="@id/title_textview">
+
+        <TextView
+            android:id="@+id/info_tv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="24sp"/>
+
+        <SeekBar
+            android:id="@+id/alpha_sb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="20"
+            android:layout_marginBottom="25px"/>
+
+        <SeekBar
+            android:id="@+id/beta_sb"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="50"
+            android:layout_marginBottom="25px"/>
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/main_imageview_1"
+        android:layout_width="250px"
+        android:layout_height="400px"
+        android:layout_toRightOf="@id/controls_layout"
+        android:layout_alignTop="@id/controls_layout"/>
+
+    <ImageView
+        android:id="@+id/main_imageview_2"
+        android:layout_width="250px"
+        android:layout_height="400px"
+        android:layout_below="@id/title_textview"
+        android:layout_toRightOf="@id/main_imageview_1"
+        android:layout_alignTop="@id/controls_layout"/>
+
+</RelativeLayout>
