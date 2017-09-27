@@ -12,10 +12,9 @@ import android.graphics.Color;
 
 public class PhysicalInterface {
 
-    private static final String TAG = "xyz";
+    private static final String TAG = "drawbot";
 
     public Apa102 mApa102;
-    public Gpio mPullupGpio;
 
     public PhysicalInterface() {
 
@@ -23,17 +22,6 @@ public class PhysicalInterface {
             mApa102 = new Apa102("SPI3.0", Apa102.Mode.BGR);
         } catch (IOException e) {
             Log.e(TAG, "LED setup failed", e);
-        }
-
-        // enable the pull-up source  for the  button (GPIO_175)
-        try {
-            PeripheralManagerService manager = new PeripheralManagerService();
-            mPullupGpio = manager.openGpio("GPIO_175");
-            mPullupGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
-            mPullupGpio.setActiveType(Gpio.ACTIVE_HIGH);
-            mPullupGpio.setValue(true);
-        } catch (IOException e) {
-             Log.w(TAG, "Unable to access GPIO", e);
         }
     }
 
@@ -63,18 +51,9 @@ public class PhysicalInterface {
             try {
                 mApa102.close();
             } catch (IOException e) {
-                Log.d(TAG, "Error closing LED interface");
-                e.printStackTrace();
-            }
-        }
-
-        if (mPullupGpio != null) {
-            try {
-                mPullupGpio.close();
-                mPullupGpio = null;
-            } catch (IOException e) {
-                Log.d(TAG, "Unable to close pullup GPIO");
-                e.printStackTrace();
+                Log.e(TAG, "Error closing LED interface", e);
+            } finally {
+                mApa102 = null;
             }
         }
     }

@@ -255,7 +255,7 @@ public class CameraHandler {
                 Log.d(TAG, "Effect available: " + effect);
             }
         } catch (CameraAccessException e) {
-            Log.d(TAG, "Cam access exception getting characteristics.");
+            Log.e(TAG, "Cam access exception getting characteristics.", e);
         }
     }
 }

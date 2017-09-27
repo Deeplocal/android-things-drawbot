@@ -58,7 +58,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         RESETTING
     }
 
-    private static final String TAG = "abc";
+    private static final String TAG = "drawbot";
     private static final String BUTTON_PIN_NAME = "GPIO_174"; // GPIO port wired to the button
     private static final int DEBOUNCE_MILLIS = 333;
     private static final boolean UPDATE_SCREEN = false;
@@ -74,7 +74,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     private TextView mInfoTextView;
     private SeekBar mAlphaSb, mBetaSb;
     private ImageView mImageView1;
-    private ImageView mImageView2;
 
     private MovementControl mMovementControl;
     private PhysicalInterface mPhysicalInterface;
@@ -106,7 +105,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
             mInfoTextView = (TextView) findViewById(R.id.info_tv);
             mImageView1 = (ImageView) findViewById(R.id.main_imageview_1);
-            mImageView2 = (ImageView) findViewById(R.id.main_imageview_2);
             mAlphaSb = ((SeekBar) findViewById(R.id.alpha_sb));
             mBetaSb = ((SeekBar) findViewById(R.id.beta_sb));
 
@@ -164,9 +162,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         String uid = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         Log.d(TAG, String.format("UID = %s", uid));
-        mMovementControl = new MovementControl(MainActivity.this, uid);
-
         mRobotConfig = new RobotConfig(uid);
+        mMovementControl = new MovementControl(MainActivity.this);
 
         mPhysicalInterface = new PhysicalInterface();
         mPhysicalInterface.writeLED(Color.WHITE);
@@ -185,8 +182,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             try {
                 mCameraHandler.initializeCamera(MainActivity.this, mBackgroundHandler, MainActivity.this);
             } catch (IllegalArgumentException e) {
-                Log.d(TAG, "Could not initialize camera. (Not connected?)");
-                e.printStackTrace();
+                Log.e(TAG, "Could not initialize camera. (Not connected?)", e);
             }
         }
     };
@@ -747,11 +743,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         Log.d("oscar", String.format("DRAW LINE %s", mDrawingLines.get(mCurrentLine - 1).toString()));
 
         // this function calls MainActivity.this.pivot() when steppers are finished
-        try {
-            mMovementControl.moveStraight(scaledDistance, true);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        mMovementControl.moveStraight(scaledDistance, true);
     }
 
     public void pivot() {
@@ -806,11 +798,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         infoText(String.format("Turning %f degrees", degrees));
 
         // this function calls MainActivity.this.drawNextLine() when steppers are finished
-        try {
-            mMovementControl.turn(degrees, true);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        mMovementControl.turn(degrees, true);
     }
 
     @Override
@@ -842,5 +830,9 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         if (mCameraHandler != null) {
             mCameraHandler.shutDown();
         }
+    }
+
+    public RobotConfig getRobotConfig() {
+        return mRobotConfig;
     }
 }

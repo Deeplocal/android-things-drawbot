@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class MovementControl {
 
-    private static final String TAG = "abc";
+    private static final String TAG = "drawbot";
 
     // Tunable Parameters - Distance and Turning
     private static final double STEPS_PER_MM  = 2.721485;  // straight-line conversion
@@ -29,10 +29,10 @@ public class MovementControl {
     private MainActivity mMainActivity;
     private RobotConfig mRobotConfig;
 
-    public MovementControl(MainActivity mainActivity, String uid) {
+    public MovementControl(MainActivity mainActivity) {
 
         mMainActivity = mainActivity;
-        mRobotConfig = new RobotConfig(uid);
+        mRobotConfig = mainActivity.getRobotConfig();
 
         mLeftStepper = new ULN2003(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2], leftMotorPins[3]);
         mLeftStepper.open();
@@ -46,12 +46,12 @@ public class MovementControl {
             mPenServo.setEnabled(true);
             setMarkerPressure(0);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Could not init pen servo", e);
         }
     }
 
     // distance in mm
-    public void moveStraight(double distance, boolean isDrawing) throws InterruptedException {
+    public void moveStraight(double distance, boolean isDrawing) {
 
         int minSpeed = 4000000;
         int maxSpeed = 500000;
@@ -69,13 +69,17 @@ public class MovementControl {
         }
     }
 
-    public void turn(double turnDegrees, boolean isDrawing) throws InterruptedException {
+    public void turn(double turnDegrees, boolean isDrawing) {
 
         int minSpeed = 4200000;
         int maxSpeed = 400000;
         int rampRate = 30000;
 
-        Thread.sleep(200);
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Turn could not sleep", e);
+        }
 
         Direction leftDirection, rightDirection;
 
@@ -93,14 +97,22 @@ public class MovementControl {
                 mLeftStepper.performStep(stepDuration);
             }
 
-            Thread.sleep(200);
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "Turn could not sleep", e);
+            }
 
             // pivot turn
             leftDirection = Direction.CLOCKWISE;
             rightDirection = Direction.CLOCKWISE;
             smoothMotion(steps, ULN2003Resolution.FULL, leftDirection, rightDirection, minSpeed, maxSpeed, rampRate);
 
-            Thread.sleep(200);
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "Turn could not sleep", e);
+            }
 
             // slop steps forwards
             mLeftStepper.setDirection(Direction.COUNTERCLOCKWISE);
@@ -118,14 +130,22 @@ public class MovementControl {
                 mRightStepper.performStep(stepDuration);
             }
 
-            Thread.sleep(200);
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "Turn could not sleep", e);
+            }
 
             // pivot turn
             leftDirection = Direction.COUNTERCLOCKWISE;
             rightDirection = Direction.COUNTERCLOCKWISE;
             smoothMotion(steps, ULN2003Resolution.FULL, leftDirection, rightDirection, minSpeed, maxSpeed, rampRate);
 
-            Thread.sleep(200);
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Log.e(TAG, "Turn could not sleep", e);
+            }
 
             // slop steps forwards
             mRightStepper.setDirection(Direction.CLOCKWISE);
@@ -134,7 +154,11 @@ public class MovementControl {
             } 
         }
 
-        Thread.sleep(200);
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Turn could not sleep", e);
+        }
 
 //        Log.d(TAG, "Done turning");
 
