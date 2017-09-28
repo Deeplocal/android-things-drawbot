@@ -258,7 +258,7 @@ public class MovementControl {
         try {
             mPenServo.setAngle(angle);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Could not set angle on pen servo", e);
         }
     }
 
@@ -273,7 +273,9 @@ public class MovementControl {
             try {
                 mPenServo.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(TAG, "Could not close pen servo", e);
+            } finally {
+              mPenServo = null;
             }
         }
     }

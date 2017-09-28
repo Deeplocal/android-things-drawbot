@@ -377,7 +377,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             cameraImageStream = getContentResolver().openInputStream(cameraImageUri);
             cameraImageBuffer = Utilities.streamToMat(cameraImageStream);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Could not get camera image", e);
             return;
         }
 
@@ -661,7 +661,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         try {
             return mButtonGpio.getValue() == true;
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Could not read GPIO", e);
         }
         return false;
     }

@@ -60,7 +60,7 @@ public class Utilities {
                 return classifier;
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Could not load face classifier", e);
         }
 
         Log.d(TAG, "Failed to load face classifier");
