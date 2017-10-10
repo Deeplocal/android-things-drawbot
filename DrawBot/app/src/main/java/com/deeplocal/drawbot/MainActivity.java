@@ -163,7 +163,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         String uid = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         Log.d(TAG, String.format("UID = %s", uid));
         mRobotConfig = new RobotConfig(uid);
-        mMovementControl = new MovementControl(MainActivity.this);
+        mMovementControl = new MovementControl(MainActivity.this, mRobotConfig);
 
         mPhysicalInterface = new PhysicalInterface();
         mPhysicalInterface.writeLED(Color.WHITE);
@@ -830,9 +830,5 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         if (mCameraHandler != null) {
             mCameraHandler.shutDown();
         }
-    }
-
-    public RobotConfig getRobotConfig() {
-        return mRobotConfig;
     }
 }

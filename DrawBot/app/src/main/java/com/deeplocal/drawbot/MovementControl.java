@@ -29,10 +29,10 @@ public class MovementControl {
     private MainActivity mMainActivity;
     private RobotConfig mRobotConfig;
 
-    public MovementControl(MainActivity mainActivity) {
+    public MovementControl(MainActivity mainActivity, RobotConfig robotConfig) {
 
         mMainActivity = mainActivity;
-        mRobotConfig = mainActivity.getRobotConfig();
+        mRobotConfig = robotConfig;
 
         mLeftStepper = new ULN2003(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2], leftMotorPins[3]);
         mLeftStepper.open();
