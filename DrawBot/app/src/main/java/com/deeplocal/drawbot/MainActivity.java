@@ -160,9 +160,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
         mBackgroundHandler.post(mInitializeOnBackground);
 
-        String uid = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-        Log.d(TAG, String.format("UID = %s", uid));
-        mRobotConfig = new RobotConfig(uid);
+        mRobotConfig = RobotConfig.getInstance(this);
         mMovementControl = new MovementControl(MainActivity.this, mRobotConfig);
 
         mPhysicalInterface = new PhysicalInterface();

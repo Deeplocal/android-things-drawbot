@@ -1,110 +1,126 @@
 package com.deeplocal.drawbot;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.text.TextUtils;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class RobotConfig {
+    // Configuration store
+    private static final String STORE_NAME = "robot-config";
 
-    // defaults
-    public static final int DEFAULT_SLOPSTEPS_RIGHTFWD = 12;
-    public static final int DEFAULT_SLOPSTEPS_RIGHTBACK = 3;
-    public static final int DEFAULT_SLOPSTEPS_LEFTFWD = 12;
-    public static final int DEFAULT_SLOPSTEPS_LEFTBACK = 3;
-    public static final int DEFAULT_SPACINGADJUST_RIGHT = 0;
-    public static final int DEFAULT_SPACINGADJUST_LEFT = 0;
-    public static final int[] DEFAULT_SERVOPOS = { 115, 105, 80, 65 };
+    // Default configuration values
+    private static final int DEFAULT_SLOPSTEPS_RIGHTFWD = 12;
+    private static final int DEFAULT_SLOPSTEPS_RIGHTBACK = 3;
+    private static final int DEFAULT_SLOPSTEPS_LEFTFWD = 12;
+    private static final int DEFAULT_SLOPSTEPS_LEFTBACK = 3;
+    private static final int DEFAULT_SPACINGADJUST_RIGHT = 0;
+    private static final int DEFAULT_SPACINGADJUST_LEFT = 0;
+    private static final String DEFAULT_SERVOPOS = "115,105,80,65";
 
-    // known UIDs
-    private static final String SAMPLE_ROBOT_UID = "ba1d673987230e12";
+    // Configuration store keys
+    private static final String KEY_SLOP_FWD_R = "slop-steps-fwd-right";
+    private static final String KEY_SLOP_BACK_R = "slop-steps-back-right";
+    private static final String KEY_SLOP_FWD_L = "slop-steps-fwd-left";
+    private static final String KEY_SLOP_BACK_L = "slop-steps-back-left";
+    private static final String KEY_SPACING_R = "spacing-adjust-right";    // tenths of mm
+    private static final String KEY_SPACING_L = "spacing-adjust-left";     // tenths of mm
+    private static final String KEY_SERVO_POS = "servo-position";
 
-    private String mUid;
-    private static Map<String, Integer> mSlopStepsRightFwd;
-    private static Map<String, Integer> mSlopStepsRightBack;
-    private static Map<String, Integer> mSlopStepsLeftFwd;
-    private static Map<String, Integer> mSlopStepsLeftBack;
-    private static Map<String, Integer> mSpacingAdjustRight;   // tenths of mm
-    private static Map<String, Integer> mSpacingAdjustLeft;    // tenths of  mm
-    private static Map<String, ArrayList<Integer>> mServoPos;
-
-    // statically init known UIDs with known values
-    static {
-
-        // init hashmaps
-        mSlopStepsRightFwd = new HashMap<>();
-        mSlopStepsRightBack = new HashMap<>();
-        mSlopStepsLeftFwd = new HashMap<>();
-        mSlopStepsLeftBack = new HashMap<>();
-        mSpacingAdjustRight = new HashMap<>();
-        mSpacingAdjustLeft = new HashMap<>();
-        mServoPos = new HashMap<>();
-
-        // put bench rig
-        mSlopStepsRightFwd.put(SAMPLE_ROBOT_UID, 12);
-        mSlopStepsRightBack.put(SAMPLE_ROBOT_UID, 3);
-        mSlopStepsLeftFwd.put(SAMPLE_ROBOT_UID, 12);
-        mSlopStepsLeftBack.put(SAMPLE_ROBOT_UID, 3);
-        mSpacingAdjustRight.put(SAMPLE_ROBOT_UID, 0);
-        mSpacingAdjustLeft.put(SAMPLE_ROBOT_UID, 0);
-        ArrayList servoPosBR = new ArrayList();
-        servoPosBR.add(115); // line thickness 0
-        servoPosBR.add(105); // line thickness 1
-        servoPosBR.add(80); // line thickness 2
-        servoPosBR.add(65); // line thickness 3
-        mServoPos.put(SAMPLE_ROBOT_UID, servoPosBR);
-    }
-
-    public RobotConfig(String uid) {
-
-        // save uid
-        mUid = uid;
-
-        // apply defaults if uid is unknown
-        if (mSlopStepsRightFwd.get(uid) == null) {
-
-            mSlopStepsRightFwd.put(uid, DEFAULT_SLOPSTEPS_RIGHTFWD);
-            mSlopStepsRightBack.put(uid, DEFAULT_SLOPSTEPS_RIGHTBACK);
-            mSlopStepsLeftFwd.put(uid, DEFAULT_SLOPSTEPS_LEFTFWD);
-            mSlopStepsLeftBack.put(uid, DEFAULT_SLOPSTEPS_LEFTBACK);
-            mSpacingAdjustRight.put(uid, DEFAULT_SPACINGADJUST_RIGHT);
-            mSpacingAdjustLeft.put(uid, DEFAULT_SPACINGADJUST_LEFT);
-            ArrayList servoPos = new ArrayList();
-            servoPos.add(DEFAULT_SERVOPOS[0]);
-            servoPos.add(DEFAULT_SERVOPOS[1]);
-            servoPos.add(DEFAULT_SERVOPOS[2]);
-            servoPos.add(DEFAULT_SERVOPOS[3]);
-            mServoPos.put(uid, servoPos);
+    private static RobotConfig sInstance;
+    public static synchronized RobotConfig getInstance(Context context) {
+        if (sInstance == null) {
+            sInstance = new RobotConfig(context);
         }
+
+        return sInstance;
     }
 
+    private SharedPreferences mConfigStore;
+
+    private RobotConfig(Context context) {
+        // Init the configuration store
+        mConfigStore = context.getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE);
+    }
+
+    /**
+     * Apply a new set of tuning parameters to the robot configuration.
+     * @param tuningParams Set of calibration parameters
+     */
+    public void updateCalibration(HashMap<String, String> tuningParams) {
+        mConfigStore.edit()
+                .putInt(KEY_SLOP_FWD_R, getNumericParam(KEY_SLOP_FWD_R, tuningParams))
+                .putInt(KEY_SLOP_FWD_L, getNumericParam(KEY_SLOP_FWD_L, tuningParams))
+                .putInt(KEY_SLOP_BACK_R, getNumericParam(KEY_SLOP_BACK_R, tuningParams))
+                .putInt(KEY_SLOP_BACK_L, getNumericParam(KEY_SLOP_BACK_L, tuningParams))
+                .putInt(KEY_SPACING_R, getNumericParam(KEY_SPACING_R, tuningParams))
+                .putInt(KEY_SPACING_L, getNumericParam(KEY_SPACING_L, tuningParams))
+                .putString(KEY_SERVO_POS, tuningParams.get(KEY_SERVO_POS))
+                .apply();
+    }
+
+    private int getNumericParam(String key, HashMap<String, String> params) {
+        return Integer.valueOf(params.get(key));
+    }
+
+    /**
+     * Return the forward right slop parameter
+     */
     public int getSlopStepsRightFwd() {
-        return mSlopStepsRightFwd.get(mUid);
+        return mConfigStore.getInt(KEY_SLOP_FWD_R, DEFAULT_SLOPSTEPS_RIGHTFWD);
     }
 
+    /**
+     * Return the backward right slop parameter
+     */
     public int getSlopStepsRightBack() {
-        return mSlopStepsRightBack.get(mUid);
+        return mConfigStore.getInt(KEY_SLOP_BACK_R, DEFAULT_SLOPSTEPS_RIGHTBACK);
     }
 
+    /**
+     * Return the forward left slop parameter
+     */
     public int getSlopStepsLeftFwd() {
-        return mSlopStepsLeftFwd.get(mUid);
+        return mConfigStore.getInt(KEY_SLOP_FWD_L, DEFAULT_SLOPSTEPS_LEFTFWD);
     }
 
+    /**
+     * Return the backward left slop parameter
+     */
     public int getSlopStepsLeftBack() {
-        return mSlopStepsLeftBack.get(mUid);
+        return mConfigStore.getInt(KEY_SLOP_BACK_L, DEFAULT_SLOPSTEPS_LEFTBACK);
     }
 
+    /**
+     * Return the right spacing adjust parameter
+     */
     public int getSpacingAdjustRight() {
-        return mSpacingAdjustRight.get(mUid);   
+        return mConfigStore.getInt(KEY_SPACING_R, DEFAULT_SPACINGADJUST_RIGHT);
     }
 
+    /**
+     * Return the left spacing adjust parameter
+     */
     public int getSpacingAdjustLeft() {
-        return mSpacingAdjustLeft.get(mUid);   
+        return mConfigStore.getInt(KEY_SPACING_L, DEFAULT_SPACINGADJUST_LEFT);
     }
 
+    /**
+     * Return the initial servo position for the given motor
+     * @param pos motor id
+     */
     public int getServoPos(int pos) {
-        ArrayList<Integer> servoPos = mServoPos.get(mUid);
-        if ((servoPos == null) || (pos >= servoPos.size()))
+        String positionSet = mConfigStore.getString(KEY_SERVO_POS, DEFAULT_SERVOPOS);
+        String[] servoPos = TextUtils.split(positionSet, ",");
+        if ((pos < 0) || (pos >= servoPos.length)) {
             return 0;
-        return servoPos.get(pos);
+        }
+        return Integer.valueOf(servoPos[pos]);
     }
 }
