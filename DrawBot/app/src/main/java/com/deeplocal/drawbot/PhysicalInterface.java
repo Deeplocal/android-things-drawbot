@@ -43,6 +43,26 @@ public class PhysicalInterface {
         }
     }
 
+    /**
+     * Blocking I/O method to hold the LED on for a specific
+     */
+    public void holdLED(int color, int duration) {
+        writeLED(color);
+        try {
+            Thread.sleep(duration);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "LED could not sleep", e);
+        }
+    }
+
+    /**
+     * Blocking I/O method to blink the LED for a specific duration
+     */
+    public void flashLED(int onColor, int onDuration, int offColor, int offDuration) {
+        holdLED(onColor, onDuration);
+        holdLED(offColor, offDuration);
+    }
+
     public void close() {
 
         Log.d(TAG, "Closing LED interface...");

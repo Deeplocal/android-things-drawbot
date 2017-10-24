@@ -66,7 +66,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     private Gpio mButtonGpio;
     private boolean mButtonDebouncing;
 
-    private HandlerThread mBackgroundThread;
+    private Handler mMainHandler;
     private Handler mBackgroundHandler;
     private CameraHandler mCameraHandler;
     private ImagePreprocessor mImagePreprocessor;
@@ -84,9 +84,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private static final double DRAW_SCALE = 4;
 
-    private boolean mIsDrawing = false;
     private ArrayList<Line> mDrawingLines;
-    private int mCurrentLine;
 
     private double mAlpha = 1;
     private int mBeta = 0;
@@ -155,37 +153,35 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             Log.e(TAG, "Error configuring GPIO pin", e);
         }
 
-        mBackgroundThread = new HandlerThread("BackgroundThread");
-        mBackgroundThread.start();
-        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-        mBackgroundHandler.post(mInitializeOnBackground);
+        // Process blocking I/O in the background
+        HandlerThread backgroundThread = new HandlerThread("BackgroundThread");
+        backgroundThread.start();
+        mBackgroundHandler = new Handler(backgroundThread.getLooper());
+
+        // Process messages on the main thread
+        mMainHandler = new Handler();
+
+        // Initialize camera
+        mImagePreprocessor = new ImagePreprocessor(MainActivity.this);
+        mCameraHandler = CameraHandler.getInstance();
+        try {
+            mCameraHandler.initializeCamera(MainActivity.this, mBackgroundHandler, MainActivity.this);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not initialize camera. (Not connected?)", e);
+        }
 
         String uid = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         Log.d(TAG, String.format("UID = %s", uid));
         mRobotConfig = new RobotConfig(uid);
-        mMovementControl = new MovementControl(MainActivity.this, mRobotConfig);
+        mMovementControl = new MovementControl(mRobotConfig);
 
         mPhysicalInterface = new PhysicalInterface();
         mPhysicalInterface.writeLED(Color.WHITE);
 
+        mDrawingLines = new ArrayList<>();
+
         infoText("Ready");
     }
-
-    private Runnable mInitializeOnBackground = new Runnable() {
-
-        @Override
-        public void run() {
-
-            mImagePreprocessor = new ImagePreprocessor(MainActivity.this);
-            mCameraHandler = CameraHandler.getInstance();
-
-            try {
-                mCameraHandler.initializeCamera(MainActivity.this, mBackgroundHandler, MainActivity.this);
-            } catch (IllegalArgumentException e) {
-                Log.e(TAG, "Could not initialize camera. (Not connected?)", e);
-            }
-        }
-    };
 
     private GpioCallback mGpioCallback = new GpioCallback() {
 
@@ -212,8 +208,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     Log.d(TAG, "Setup: 5 seconds to enter kiosk number");
 
                     // runs at end of countdown
-                    final Handler countdownHandler = new Handler();
-                    countdownHandler.postDelayed(new Runnable() {
+                    mBackgroundHandler.postDelayed(new Runnable() {
 
                         @Override
                         public void run() {
@@ -227,15 +222,10 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                                 upperBound = 4;
 
                             // flash kioskNumber # times
-                            mPhysicalInterface.writeLED(Color.BLACK);
-                            try {Thread.sleep(1000);} catch (InterruptedException e) {}
+                            mPhysicalInterface.holdLED(Color.BLACK, 1000);
                             for (int i = 0; i < upperBound; i++) {
-                                mPhysicalInterface.writeLED(Color.BLUE);
-                                try {Thread.sleep(200);} catch (InterruptedException e) {}
-                                mPhysicalInterface.writeLED(Color.BLACK);
-                                try {Thread.sleep(500);} catch (InterruptedException e) {}
+                                mPhysicalInterface.flashLED(Color.BLUE, 200, Color.BLACK, 500);
                             }
-                            try {Thread.sleep(1000);} catch (InterruptedException e) {}
 
                             // end setup, ready for normal use
                             if (mDrawMode == DrawMode.NORMAL) {
@@ -267,15 +257,12 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     infoText(String.format("Setup: draw mode = %s", mDrawMode));
 
                     // flash LED blue for feedback
-                    mPhysicalInterface.writeLED(Color.BLUE);
-                    final Handler ledFlashHandler = new Handler();
-                    ledFlashHandler.postDelayed(new Runnable() {
-
+                    mBackgroundHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            mPhysicalInterface.writeLED(Color.WHITE);
+                            mPhysicalInterface.flashLED(Color.BLUE, 500, Color.WHITE, 500);
                         }
-                    }, 500);
+                    });
 
                     break;
 
@@ -289,6 +276,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     mAlpha = 1;
                     mBeta = 0;
 
+                    // Camera processing is already set up for background
                     mPhysicalInterface.writeLED(Color.YELLOW);
                     mCameraHandler.takePicture();
 
@@ -296,32 +284,21 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
                 case WAITING_TO_DRAW:
 
-                    if ((mDrawingLines == null) || (mDrawingLines.size() == 0)) {
+                    if (mDrawingLines.isEmpty()) {
                         Log.d(TAG, "No drawing lines");
-                        mPhysicalInterface.writeLED(Color.RED);
-                        mState = State.NO_PHOTO;
+                        stopDrawing();
                         break;
                     }
 
-                    mState = State.DRAWING;
-
-                    Log.d(TAG, "Drawing in 3 secs..");
-
-                    // start drawing in 3 secs
-                    mPhysicalInterface.writeLED(Color.MAGENTA);
-                    Handler h = new Handler();
-                    h.postDelayed(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            beginDrawing();
-                        }
-                    }, 3000);
-
+                    startDrawing();
                     break;
 
                 case PROCESSING_PHOTO:
                 case DRAWING:
+                    // If button pressed while drawing, cancel
+                    Log.d(TAG, "Canceling draw operation");
+                    stopDrawing();
+                    break;
                 case RESETTING:
                     Log.d(TAG, String.format("Intentionally skipping mState = %s button press", mState));
                     break;
@@ -331,7 +308,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     break;
                 }
 
-            new Handler().postDelayed(new Runnable() {
+            mMainHandler.postDelayed(new Runnable() {
 
                 @Override
                 public void run() {
@@ -551,7 +528,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         copicLines.add(2, new Line(leftCenter, startPoint, 0));
 
         // save drawing lines and update state
-        mDrawingLines = copicLines;
+        mDrawingLines.clear();
+        mDrawingLines.addAll(copicLines);
         mState = State.WAITING_TO_DRAW;
         mPhysicalInterface.writeLED(Color.GREEN);
 
@@ -575,29 +553,50 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         });
     }
 
-    private void beginDrawing() {
-
-        // safety check
-        if (mIsDrawing) {
-            Log.d(TAG, "Cannot start a new drawing while drawing");
-            return;
-        }
-
+    private void startDrawing() {
+        mState = State.DRAWING;
+        //TODO: Convert line queue into operations set on BG thread
+        // start drawing in 3 secs
+        Log.d(TAG, "Drawing in 3 secs..");
+        mPhysicalInterface.holdLED(Color.MAGENTA, 3000);
+        // begin drawing
+        Log.d(TAG, "Begin drawing");
         mPhysicalInterface.writeLED(Color.BLUE);
 
-        // init variables
-        mCurrentLine = 1;
-        mIsDrawing = true;
+        // Queue up all the drawing ops
+        for (int i = 0; i < mDrawingLines.size(); i++) {
+            // Drawing op
+            final Line current = mDrawingLines.get(i);
+            final int nextIndex = i+1;
+            mBackgroundHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    drawLine(current, nextIndex, mDrawingLines.size());
+                }
+            });
 
-        // begin drawing
-        new Handler().post(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "Posting pivot()");
-                mButtonDebouncing = false; // todo: double check this - must do this because next fxn chain doesnt allow async fxn to fire
-                pivot();
+            if (nextIndex < mDrawingLines.size()) {
+                // Pivoting op
+                final Line next = mDrawingLines.get(nextIndex);
+                mBackgroundHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        pivot(current, next);
+                    }
+                });
             }
-        });
+        }
+    }
+
+    private void stopDrawing() {
+        Log.d(TAG, "Resetting");
+
+        // Clear out the drawing ops queue
+        mDrawingLines.clear();
+        mBackgroundHandler.removeCallbacksAndMessages(null);
+
+        mState = State.NO_PHOTO;
+        mPhysicalInterface.writeLED(Color.RED);
     }
 
     /*
@@ -608,7 +607,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     public void squareTest(boolean rightTurn) {
 
         int length = 25;
-        mDrawingLines = new ArrayList<>();
+        mDrawingLines.clear();
         for (int i = 0; i < 100; i++) {
             if (rightTurn) {
                 mDrawingLines.add(new Line(new Point(0, 0), new Point(length - 1, 0), 1));
@@ -632,7 +631,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
      */
     public void pressureTest() {
 
-        mDrawingLines = new ArrayList<>();
+        mDrawingLines.clear();
 
         for (int  i = 0; i < 100; i++) {
             mDrawingLines.add(new Line(new Point(0, 0), new Point(5, 0), 0));
@@ -654,57 +653,12 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         mPhysicalInterface.writeLED(Color.GREEN);
     }
 
-    private boolean shouldDrawingStop() {
-
-        Log.d(TAG, "shouldDrawingStop() ?");
-
-        try {
-            return mButtonGpio.getValue() == true;
-        } catch (IOException e) {
-            Log.e(TAG, "Could not read GPIO", e);
-        }
-        return false;
-    }
-
-    private void stopDrawing() {
-
-        Log.d(TAG, "Stop drawing");
-
-        // reset drawing vars
-        mIsDrawing = false;
-        mDrawingLines = null;
-
-        Log.d(TAG, "Resetting");
-        mState = State.RESETTING;
-        mPhysicalInterface.writeLED(Color.BLACK);
-
-        // delay changing state to skip that button press that happens as soon as
-        // function chain finishes
-        new Handler().postDelayed(new Runnable() {
-
-            @Override
-            public void run() {
-                mState = State.NO_PHOTO;
-                mPhysicalInterface.writeLED(Color.RED);
-                Log.d(TAG, String.format("Done resetting, state = %s", mState));
-            }
-        }, 5000);
-    }
-
-    public void drawNextLine() {
-
-        // check for forced stop
-        if (shouldDrawingStop()) {
-            stopDrawing();
-            return;
-        }
-
-//        Log.d(TAG, String.format("drawNextLine() [mCurrentLine = %d / %d, mIsMovementLine = %b]", mCurrentLine, mDrawingLines.size(), mIsMovementLine));
+    public void drawLine(Line current, int index, int count) {
 
         double scaledDistance;
 
         // drop pen
-        int thickness = mDrawingLines.get(mCurrentLine).getThickness();
+        int thickness = current.getThickness();
         mMovementControl.setMarkerPressure(thickness);
         if (thickness == 1) {
             mPhysicalInterface.writeLED(Color.YELLOW);
@@ -717,12 +671,12 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         }
 
         // get line length and scale
-        double distance = mDrawingLines.get(mCurrentLine).getLength();
+        double distance = current.getLength();
         scaledDistance = distance * DRAW_SCALE;
 
         // gap adjustment
-        Point p1 = mDrawingLines.get(mCurrentLine).getPoint1();
-        Point p2 = mDrawingLines.get(mCurrentLine).getPoint2();
+        Point p1 = current.getPoint1();
+        Point p2 = current.getPoint2();
         if (p1.x == p2.x) { // vertical line
             double adjustment;
             if  (p1.x > 1) { // right side
@@ -735,51 +689,21 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             scaledDistance += adjustment;
         }
 
-        infoText(String.format("Drawing %f mm (line %d / %d)", scaledDistance, mCurrentLine, mDrawingLines.size()));
-
-        // increment current point
-        mCurrentLine++;
-
-        Log.d("oscar", String.format("DRAW LINE %s", mDrawingLines.get(mCurrentLine - 1).toString()));
+        infoText(String.format("Drawing %f mm (line %d / %d)", scaledDistance, index, count));
+        Log.d("oscar", String.format("DRAW LINE %s", current.toString()));
 
         // this function calls MainActivity.this.pivot() when steppers are finished
-        mMovementControl.moveStraight(scaledDistance, true);
+        mMovementControl.moveStraight(scaledDistance);
     }
 
-    public void pivot() {
-
-        // check for forced stop
-        if (shouldDrawingStop()) {
-            stopDrawing();
-            return;
-        }
-
-        // check if drawing is finished
-        if (mCurrentLine == mDrawingLines.size()) {
-
-            // lift pen
-            mMovementControl.setMarkerPressure(0);
-            mPhysicalInterface.writeLED(Color.BLUE);
-
-            Log.d(TAG, "Finished drawing");
-
-            // reset flags and state
-            mIsDrawing = false;
-            mDrawingLines = null;
-            mState = State.NO_PHOTO;
-            mPhysicalInterface.writeLED(Color.RED);
-
-            return;
-        }
-
-//        Log.d(TAG, String.format("pivot() [mCurrentLine = %d], mIsMovementLine = %b]", mCurrentLine, mIsMovementLine));
+    public void pivot(Line previous, Line current) {
 
         Point p1, p2, p3;
 
         // find angle between previous line and next line
-        p1 = mDrawingLines.get(mCurrentLine - 1).getPoint1();
-        p2 = mDrawingLines.get(mCurrentLine).getPoint1();
-        p3 = mDrawingLines.get(mCurrentLine).getPoint2();
+        p1 = previous.getPoint1();
+        p2 = current.getPoint1();
+        p3 = current.getPoint2();
 
         double degrees = Utilities.calcDegrees(p1, p2, p3);
 
@@ -787,7 +711,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         // skip turn if none required
         if (degrees == 0) {
-            drawNextLine();
             return;
         }
 
@@ -798,7 +721,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         infoText(String.format("Turning %f degrees", degrees));
 
         // this function calls MainActivity.this.drawNextLine() when steppers are finished
-        mMovementControl.turn(degrees, true);
+        mMovementControl.turn(degrees);
     }
 
     @Override
