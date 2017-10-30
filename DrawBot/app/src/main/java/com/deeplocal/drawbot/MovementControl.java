@@ -34,10 +34,14 @@ public class MovementControl {
         mMainActivity = mainActivity;
         mRobotConfig = robotConfig;
 
-        mLeftStepper = new ULN2003(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2], leftMotorPins[3]);
-        mLeftStepper.open();
-        mRightStepper = new ULN2003(rightMotorPins[0], rightMotorPins[1], rightMotorPins[2], rightMotorPins[3]);
-        mRightStepper.open();
+        try {
+            mLeftStepper = new ULN2003(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2], leftMotorPins[3]);
+            mLeftStepper.open();
+            mRightStepper = new ULN2003(rightMotorPins[0], rightMotorPins[1], rightMotorPins[2], rightMotorPins[3]);
+            mRightStepper.open();
+        } catch (Exception e) {
+            Log.e(MainActivity.TAG, "Error opening steppers", e);
+        }
 
         try {
             mPenServo = new Servo(penServoPin);

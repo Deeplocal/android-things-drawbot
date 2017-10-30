@@ -4,14 +4,10 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 
 public class RobotConfig {
+
     // Configuration store
     private static final String STORE_NAME = "robot-config";
 
@@ -25,13 +21,13 @@ public class RobotConfig {
     private static final String DEFAULT_SERVOPOS = "115,105,80,65";
 
     // Configuration store keys
-    private static final String KEY_SLOP_FWD_R = "slop-steps-fwd-right";
-    private static final String KEY_SLOP_BACK_R = "slop-steps-back-right";
-    private static final String KEY_SLOP_FWD_L = "slop-steps-fwd-left";
-    private static final String KEY_SLOP_BACK_L = "slop-steps-back-left";
-    private static final String KEY_SPACING_R = "spacing-adjust-right";    // tenths of mm
-    private static final String KEY_SPACING_L = "spacing-adjust-left";     // tenths of mm
-    private static final String KEY_SERVO_POS = "servo-position";
+    public static final String KEY_SLOP_FWD_R = "slop-steps-fwd-right";
+    public static final String KEY_SLOP_BACK_R = "slop-steps-back-right";
+    public static final String KEY_SLOP_FWD_L = "slop-steps-fwd-left";
+    public static final String KEY_SLOP_BACK_L = "slop-steps-back-left";
+    public static final String KEY_SPACING_R = "spacing-adjust-right";    // tenths of mm
+    public static final String KEY_SPACING_L = "spacing-adjust-left";     // tenths of mm
+    public static final String KEY_SERVO_POS = "servo-position";
 
     private static RobotConfig sInstance;
     public static synchronized RobotConfig getInstance(Context context) {

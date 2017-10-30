@@ -9,7 +9,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.provider.Settings;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -58,7 +57,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         RESETTING
     }
 
-    private static final String TAG = "drawbot";
+    public static final String TAG = "drawbot";
+
     private static final String BUTTON_PIN_NAME = "GPIO_174"; // GPIO port wired to the button
     private static final int DEBOUNCE_MILLIS = 333;
     private static final boolean UPDATE_SCREEN = false;
