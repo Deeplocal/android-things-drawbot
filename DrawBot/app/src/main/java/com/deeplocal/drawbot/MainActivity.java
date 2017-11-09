@@ -146,6 +146,11 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         // initialize gpio input and set callback for falling edge
         try {
             PeripheralManagerService manager = new PeripheralManagerService();
+
+            // button uses this as pullup
+            Gpio buttonPullupGpio = manager.openGpio("GPIO_175");
+            buttonPullupGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+
             mButtonGpio = manager.openGpio(BUTTON_PIN_NAME);
             mButtonGpio.setDirection(Gpio.DIRECTION_IN);
             mButtonGpio.setActiveType(Gpio.ACTIVE_LOW);
