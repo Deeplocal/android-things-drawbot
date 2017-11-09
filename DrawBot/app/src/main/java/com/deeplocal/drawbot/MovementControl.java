@@ -1,5 +1,6 @@
 package com.deeplocal.drawbot;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.google.android.things.contrib.driver.pwmservo.Servo;
@@ -15,26 +16,35 @@ public class MovementControl {
     private static final String TAG = "drawbot";
 
     // Tunable Parameters - Distance and Turning
-    private static final double STEPS_PER_MM  = 2.721485;  // straight-line conversion
-    private static final double STEPS_PER_DEG = 2.923;     // point-turn conversion
+    private static final double STEPS_PER_MM  = 4.46438;  // straight-line conversion
+    private static final double STEPS_PER_DEG = 2.260;     // point-turn conversion
 
-    private static final String[] leftMotorPins = { "GPIO_10", "GPIO_35", "GPIO_33", "GPIO_128" };
-    private static final String[] rightMotorPins = { "GPIO_32", "GPIO_34", "GPIO_37", "GPIO_39" };
-    private static final String penServoPin = "PWM2";
+    private static final int RAMP_MAX_SLEEP = 6000000;
+    private static final int RAMP_MIN_SLEEP = 800000;
+    private static final int RAMP_RATE = 50000;
 
-    private ULN2003 mLeftStepper;
-    private ULN2003 mRightStepper;
+    private static final String[] leftMotorPins = { "GPIO_10", "GPIO_128", "GPIO_35" };
+    private static final String[] rightMotorPins = { "GPIO_39", "GPIO_37", "GPIO_32" };
+    private static final String penServoPin = "PWM1";
+
+    private DRV8834 mLeftStepper;
+    private DRV8834 mRightStepper;
     private Servo mPenServo;
 
     private RobotConfig mRobotConfig;
 
-    public MovementControl(RobotConfig robotConfig) {
-        mRobotConfig = robotConfig;
+    public MovementControl(Context c) {
 
-        mLeftStepper = new ULN2003(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2], leftMotorPins[3]);
-        mLeftStepper.open();
-        mRightStepper = new ULN2003(rightMotorPins[0], rightMotorPins[1], rightMotorPins[2], rightMotorPins[3]);
-        mRightStepper.open();
+        mRobotConfig = new RobotConfig(null);
+
+        try {
+            mLeftStepper = new DRV8834(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2]);
+            mLeftStepper.open();
+            mRightStepper = new DRV8834(rightMotorPins[0], rightMotorPins[1], rightMotorPins[2]);
+            mRightStepper.open();
+        } catch (Exception e) {
+            Log.e(MainActivity.TAG, "Error opening steppers", e);
+        }
 
         try {
             mPenServo = new Servo(penServoPin);
@@ -47,191 +57,161 @@ public class MovementControl {
         }
     }
 
+    public void sleepSteppers(final boolean shouldSleep) {
+
+        try {
+            mLeftStepper.setSleep(shouldSleep);
+            mRightStepper.setSleep(shouldSleep);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     // distance in mm
     public void moveStraight(double distance) {
 
-        int minSpeed = 4000000;
-        int maxSpeed = 500000;
-        int rampRate = 20000;
-
         int steps = (int) (distance * STEPS_PER_MM);
+        Log.d(TAG, String.format("Straight: steps = %d", steps));
 
-//        constantMotion(steps, isDrawing, Direction.COUNTERCLOCKWISE, Direction.CLOCKWISE);
-        smoothMotion(steps, ULN2003Resolution.HALF, Direction.COUNTERCLOCKWISE, Direction.CLOCKWISE, minSpeed, maxSpeed, rampRate);
+//        doConstantSteps(steps, RAMP_MAX_SLEEP, DRV8834.Direction.COUNTERCLOCKWISE, DRV8834.Direction.CLOCKWISE);
+        doRampedSteps(steps, DRV8834.Direction.COUNTERCLOCKWISE, DRV8834.Direction.CLOCKWISE);
 
+        Log.d(TAG, "Done moving straight");
     }
 
     public void turn(double turnDegrees) {
 
-        int minSpeed = 4200000;
-        int maxSpeed = 400000;
-        int rampRate = 30000;
-
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            Log.e(TAG, "Turn could not sleep", e);
-        }
-
-        Direction leftDirection, rightDirection;
-
         int steps = (int) Math.abs(turnDegrees * STEPS_PER_DEG * 2);
-        Log.d(TAG, String.format("Num steps = %d for %f degrees", steps, turnDegrees));
+        Log.d(TAG, String.format("Turn: steps = %d for %f degrees", steps, turnDegrees));
 
-        StepDuration stepDuration = new StepDuration(0, minSpeed);
-
-        // left turn
+        DRV8834.Direction direction = DRV8834.Direction.COUNTERCLOCKWISE; // right turn
         if (turnDegrees < 0) {
-            
-            // slop steps backwards
-            mLeftStepper.setDirection(Direction.CLOCKWISE);
-            for (int i = 0; i < mRobotConfig.getSlopStepsLeftBack(); i++) {
-                mLeftStepper.performStep(stepDuration);
-            }
-
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                Log.e(TAG, "Turn could not sleep", e);
-            }
-
-            // pivot turn
-            leftDirection = Direction.CLOCKWISE;
-            rightDirection = Direction.CLOCKWISE;
-            smoothMotion(steps, ULN2003Resolution.FULL, leftDirection, rightDirection, minSpeed, maxSpeed, rampRate);
-
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                Log.e(TAG, "Turn could not sleep", e);
-            }
-
-            // slop steps forwards
-            mLeftStepper.setDirection(Direction.COUNTERCLOCKWISE);
-            for (int i = 0; i < mRobotConfig.getSlopStepsLeftFwd(); i++) {
-                mLeftStepper.performStep(stepDuration);
-            }
+            direction = DRV8834.Direction.CLOCKWISE; // left turn
         }
 
-        // right turn
-        else {
+//        doConstantSteps(steps, RAMP_MAX_SLEEP, direction, direction);
+        doRampedSteps(steps, direction, direction);
 
-            // slop steps backwards
-            mRightStepper.setDirection(Direction.COUNTERCLOCKWISE);
-            for (int i = 0; i < mRobotConfig.getSlopStepsRightBack(); i++) {
-                mRightStepper.performStep(stepDuration);
-            }
+        Log.d(TAG, "Done turning");
+    }
 
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                Log.e(TAG, "Turn could not sleep", e);
-            }
-
-            // pivot turn
-            leftDirection = Direction.COUNTERCLOCKWISE;
-            rightDirection = Direction.COUNTERCLOCKWISE;
-            smoothMotion(steps, ULN2003Resolution.FULL, leftDirection, rightDirection, minSpeed, maxSpeed, rampRate);
-
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                Log.e(TAG, "Turn could not sleep", e);
-            }
-
-            // slop steps forwards
-            mRightStepper.setDirection(Direction.CLOCKWISE);
-            for (int i = 0; i < mRobotConfig.getSlopStepsRightFwd(); i++) {
-                mRightStepper.performStep(stepDuration);
-            } 
-        }
+    private void doConstantSteps(final int numSteps, final int sleepDur, final DRV8834.Direction leftDir, final DRV8834.Direction rightDir) {
 
         try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            Log.e(TAG, "Turn could not sleep", e);
+
+            mLeftStepper.setDirection(leftDir);
+            mRightStepper.setDirection(rightDir);
+            Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+
+            for (int i = 0; i < numSteps; i++) {
+                mLeftStepper.setStep(true);
+                mRightStepper.setStep(true);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+                mLeftStepper.setStep(false);
+                mRightStepper.setStep(false);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e2) {
+            e2.printStackTrace();
         }
     }
 
-    public void constantMotion(int numSteps, ULN2003Resolution res, Direction leftDirection, Direction rightDirection, int stepDelay) {
 
-        mLeftStepper.setDirection(leftDirection);
-        mRightStepper.setDirection(rightDirection);
-        mLeftStepper.setResolution(res);
-        mRightStepper.setResolution(res);
+    private void doRampedSteps(final int numSteps, final DRV8834.Direction leftDir, final DRV8834.Direction rightDir) {
 
-        int stepCount = 0; // total steps moved
-        StepDuration stepDuration = new StepDuration(0, stepDelay);
-        while (stepCount < numSteps) {
-            mLeftStepper.performStep(stepDuration);
-            mRightStepper.performStep(stepDuration);
-            stepCount++;
-        }
-    }
+        try {
 
-    public void smoothMotion(int numSteps, ULN2003Resolution res, Direction leftDirection, Direction rightDirection, int stepDelaySlowest, int stepDelayFastest, int rampRate) {
+            // directions for forward motion
+            mLeftStepper.setDirection(leftDir);
+            mRightStepper.setDirection(rightDir);
+            Thread.sleep(RAMP_MAX_SLEEP/1000000, RAMP_MAX_SLEEP%1000000);
 
-        mLeftStepper.setDirection(leftDirection);
-        mRightStepper.setDirection(rightDirection);
-        mLeftStepper.setResolution(res);
-        mRightStepper.setResolution(res);
+            int stepCount = 0;
+            int sleepDur = RAMP_MAX_SLEEP;
 
-        int stepCount = 0;      // total steps moved
-        int stepDelay = stepDelaySlowest; 
-        StepDuration stepDuration = new StepDuration(0, stepDelay);
+            // acceleration phase
+            while (sleepDur > RAMP_MIN_SLEEP) {
 
-        /******  RAMP-UP / ACCELERATION  ******/
-        while(stepDelay > stepDelayFastest) {
+                // perform a single step
+                mLeftStepper.setStep(true);
+                mRightStepper.setStep(true);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
 
-            stepDuration = new StepDuration(0, stepDelay);
-            
-            // move a single step
-            mLeftStepper.performStep(stepDuration);
-            mRightStepper.performStep(stepDuration);
-            stepCount++;
-//            Log.d(TAG, "stepCount =  " +  stepCount + " stepDelay = " + stepDelay);
-            if (stepCount > numSteps/2) break;
+                mLeftStepper.setStep(false);
+                mRightStepper.setStep(false);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
 
-            // bump up the speed a bit
-            stepDelay -= rampRate;
-        }
+                stepCount++;
 
-        // when to begin decceleration
-        int startDeccel = numSteps - stepCount;
+                if (stepCount > numSteps/2) break;
 
-//        Log.d(TAG, "Constant rate...");
+                sleepDur -=  RAMP_RATE;
+            }
 
-        /******  CONSTANT RATE  ******/
-        stepDuration = new StepDuration(0, stepDelay);
-        while (stepCount < startDeccel) {
-            mLeftStepper.performStep(stepDuration);
-            mRightStepper.performStep(stepDuration);
-            stepCount++;
-//            Log.d(TAG, "stepCount =  " +  stepCount + " stepDelay = " + stepDelay);
-        }
+            // calculate when to start decceletating, based on how many steps accel took
+            int startDeccel = numSteps - stepCount;
 
-//        Log.d(TAG, "Deccelerating...");
 
-        /******  RAMP-DOWN / DECCELERATION  ******/
-        while (stepDelay < stepDelaySlowest) {
-            stepDuration = new StepDuration(0, stepDelay);
-            mLeftStepper.performStep(stepDuration);
-            mRightStepper.performStep(stepDuration);
-            stepCount++;
-//            Log.d(TAG, "stepCount =  " +  stepCount + " stepDelay = " + stepDelay);
-            if (stepCount >= numSteps) break;
+            // constant phase
+            sleepDur = RAMP_MIN_SLEEP;
 
-            // slow down a bit
-            stepDelay += rampRate;
-        }
+            while (stepCount < startDeccel) {
 
-        // finish any last steps at slowest speed
-        stepDuration = new StepDuration(0, stepDelay);
-        while (stepCount < numSteps) {
-            mLeftStepper.performStep(stepDuration);
-            mRightStepper.performStep(stepDuration);
-            stepCount++;
-//            Log.d(TAG, "stepCount =  " +  stepCount + " stepDelay = " + stepDelay);
+                if (stepCount >= numSteps) break;
+
+                mLeftStepper.setStep(true);
+                mRightStepper.setStep(true);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+
+                mLeftStepper.setStep(false);
+                mRightStepper.setStep(false);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+
+                stepCount++;
+            }
+
+
+            // deccel phase
+            while (sleepDur < RAMP_MAX_SLEEP) {
+
+                if (stepCount >= numSteps) break;
+
+                mLeftStepper.setStep(true);
+                mRightStepper.setStep(true);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+
+                mLeftStepper.setStep(false);
+                mRightStepper.setStep(false);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+
+                stepCount++;
+
+                sleepDur += RAMP_RATE;
+            }
+
+
+            // finish any last steps at slowest speed
+            while (stepCount < numSteps) {
+
+                mLeftStepper.setStep(true);
+                mRightStepper.setStep(true);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+
+                mLeftStepper.setStep(false);
+                mRightStepper.setStep(false);
+                Thread.sleep(sleepDur/1000000, sleepDur%1000000);
+
+                stepCount++;
+            }
+
+            Thread.sleep(100);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e2) {
+            e2.printStackTrace();
         }
     }
 
@@ -251,8 +231,12 @@ public class MovementControl {
     public void close() {
 
         if ((mLeftStepper != null) && (mRightStepper != null)) {
-            mLeftStepper.close();
-            mRightStepper.close();
+            try {
+                mLeftStepper.close();
+                mRightStepper.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         if (mPenServo != null) {

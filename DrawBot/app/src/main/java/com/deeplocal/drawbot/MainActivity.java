@@ -9,7 +9,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.provider.Settings;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -58,7 +57,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         RESETTING
     }
 
-    private static final String TAG = "drawbot";
+    public static final String TAG = "drawbot";
+
     private static final String BUTTON_PIN_NAME = "GPIO_174"; // GPIO port wired to the button
     private static final int DEBOUNCE_MILLIS = 333;
     private static final boolean UPDATE_SCREEN = false;
@@ -77,7 +77,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private MovementControl mMovementControl;
     private PhysicalInterface mPhysicalInterface;
-    private RobotConfig mRobotConfig;
 
     private DrawMode mDrawMode = DrawMode.NOT_SET;
     private State mState = State.SETUP_NO_PRESSES;
@@ -143,12 +142,19 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         // initialize gpio input and set callback for falling edge
         try {
+
             PeripheralManagerService manager = new PeripheralManagerService();
+
+            // button uses this as pullup
+            Gpio buttonPullupGpio = manager.openGpio("GPIO_175");
+            buttonPullupGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH);
+
             mButtonGpio = manager.openGpio(BUTTON_PIN_NAME);
             mButtonGpio.setDirection(Gpio.DIRECTION_IN);
             mButtonGpio.setActiveType(Gpio.ACTIVE_LOW);
             mButtonGpio.setEdgeTriggerType(Gpio.EDGE_FALLING);
             mButtonGpio.registerGpioCallback(mGpioCallback);
+
         } catch (IOException e) {
             Log.e(TAG, "Error configuring GPIO pin", e);
         }
@@ -170,10 +176,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             Log.e(TAG, "Could not initialize camera. (Not connected?)", e);
         }
 
-        String uid = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-        Log.d(TAG, String.format("UID = %s", uid));
-        mRobotConfig = new RobotConfig(uid);
-        mMovementControl = new MovementControl(mRobotConfig);
+        mMovementControl = new MovementControl(this);
 
         mPhysicalInterface = new PhysicalInterface();
         mPhysicalInterface.writeLED(Color.WHITE);
@@ -258,6 +261,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
                     // flash LED blue for feedback
                     mBackgroundHandler.post(new Runnable() {
+
                         @Override
                         public void run() {
                             mPhysicalInterface.flashLED(Color.BLUE, 500, Color.WHITE, 500);
@@ -554,21 +558,32 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     }
 
     private void startDrawing() {
+
         mState = State.DRAWING;
+
         //TODO: Convert line queue into operations set on BG thread
+
         // start drawing in 3 secs
         Log.d(TAG, "Drawing in 3 secs..");
-        mPhysicalInterface.holdLED(Color.MAGENTA, 3000);
+
+        mPhysicalInterface.holdLED(Color.MAGENTA, 3000); // blocking
+
         // begin drawing
         Log.d(TAG, "Begin drawing");
         mPhysicalInterface.writeLED(Color.BLUE);
 
+        // steppers sleep between use to save battery
+        mMovementControl.sleepSteppers(false);
+
         // Queue up all the drawing ops
         for (int i = 0; i < mDrawingLines.size(); i++) {
+
             // Drawing op
             final Line current = mDrawingLines.get(i);
-            final int nextIndex = i+1;
+            final int nextIndex = i + 1;
+
             mBackgroundHandler.post(new Runnable() {
+
                 @Override
                 public void run() {
                     drawLine(current, nextIndex, mDrawingLines.size());
@@ -576,9 +591,11 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             });
 
             if (nextIndex < mDrawingLines.size()) {
+
                 // Pivoting op
                 final Line next = mDrawingLines.get(nextIndex);
                 mBackgroundHandler.post(new Runnable() {
+
                     @Override
                     public void run() {
                         pivot(current, next);
@@ -589,11 +606,15 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     }
 
     private void stopDrawing() {
+
         Log.d(TAG, "Resetting");
 
         // Clear out the drawing ops queue
         mDrawingLines.clear();
         mBackgroundHandler.removeCallbacksAndMessages(null);
+
+        // do not hold steppers to save battery
+        mMovementControl.sleepSteppers(true);
 
         mState = State.NO_PHOTO;
         mPhysicalInterface.writeLED(Color.RED);
@@ -606,7 +627,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
      */
     public void squareTest(boolean rightTurn) {
 
-        int length = 25;
+        int length = 20;
         mDrawingLines.clear();
         for (int i = 0; i < 100; i++) {
             if (rightTurn) {
@@ -621,6 +642,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                 mDrawingLines.add(new Line(new Point(length, 0), new Point(1, 0), 1));
             }
         }
+
         mState = State.WAITING_TO_DRAW;
         mPhysicalInterface.writeLED(Color.GREEN);
     }
@@ -673,21 +695,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         // get line length and scale
         double distance = current.getLength();
         scaledDistance = distance * DRAW_SCALE;
-
-        // gap adjustment
-        Point p1 = current.getPoint1();
-        Point p2 = current.getPoint2();
-        if (p1.x == p2.x) { // vertical line
-            double adjustment;
-            if  (p1.x > 1) { // right side
-                adjustment = (float) mRobotConfig.getSpacingAdjustRight() / 10.0;
-                Log.d("gap", String.format("adjusting right gap by %f mm", adjustment));
-            } else  {  // left side
-                adjustment = (float) mRobotConfig.getSpacingAdjustLeft() / 10.0;
-                Log.d("gap", String.format("adjusting left gap by %f mm", adjustment));
-            }
-            scaledDistance += adjustment;
-        }
 
         infoText(String.format("Drawing %f mm (line %d / %d)", scaledDistance, index, count));
         Log.d("oscar", String.format("DRAW LINE %s", current.toString()));

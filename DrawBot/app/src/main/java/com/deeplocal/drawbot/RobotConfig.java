@@ -40,10 +40,10 @@ public class RobotConfig {
         mServoPos = new HashMap<>();
 
         // put bench rig
-        mSlopStepsRightFwd.put(SAMPLE_ROBOT_UID, 12);
-        mSlopStepsRightBack.put(SAMPLE_ROBOT_UID, 3);
-        mSlopStepsLeftFwd.put(SAMPLE_ROBOT_UID, 12);
-        mSlopStepsLeftBack.put(SAMPLE_ROBOT_UID, 3);
+        mSlopStepsRightFwd.put(SAMPLE_ROBOT_UID, 0);
+        mSlopStepsRightBack.put(SAMPLE_ROBOT_UID, 0);
+        mSlopStepsLeftFwd.put(SAMPLE_ROBOT_UID, 0);
+        mSlopStepsLeftBack.put(SAMPLE_ROBOT_UID, 0);
         mSpacingAdjustRight.put(SAMPLE_ROBOT_UID, 0);
         mSpacingAdjustLeft.put(SAMPLE_ROBOT_UID, 0);
         ArrayList servoPosBR = new ArrayList();
@@ -56,8 +56,11 @@ public class RobotConfig {
 
     public RobotConfig(String uid) {
 
-        // save uid
-        mUid = uid;
+        if (uid == null) {
+            mUid = SAMPLE_ROBOT_UID; // use default
+        } else {
+            mUid = uid; // save uid
+        }
 
         // apply defaults if uid is unknown
         if (mSlopStepsRightFwd.get(uid) == null) {
