@@ -6,13 +6,11 @@ if [ $# -ne 1 ]
     exit;
 fi
 
+file_path=/storage/emulated/0/Android/data/com.deeplocal.drawbot/files/;
 file_name=calibration-$(date +%s).json;
 
-echo "Moving $file_name to /sdcard/";
-adb push $1 /sdcard/$file_name;
-
-echo "Copying /sdcard/$file_name to /data/user/0/com.deeplocal.drawbot/files/$file_name";
-adb shell run-as com.deeplocal.drawbot cp /sdcard/$file_name /data/user/0/com.deeplocal.drawbot/files/$file_name;
+echo "Moving $file_name to $file_path";
+adb push $1 $file_path$file_name;
 
 echo "Broadcasting intent to update calibration";
 adb shell am broadcast -a com.deeplocal.drawbot.intent.UPDATE_CALIBRATION --es file_path "$file_name";

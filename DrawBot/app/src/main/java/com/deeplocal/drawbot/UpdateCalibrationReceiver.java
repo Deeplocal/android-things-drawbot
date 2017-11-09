@@ -32,10 +32,12 @@ public class UpdateCalibrationReceiver extends BroadcastReceiver {
         }
 
         // if path not provided, assume app file directory
-        if (!filePath.contains("/")) {
-            filePath = context.getFilesDir().getAbsolutePath() + "/" + filePath;
-            Log.d(MainActivity.TAG, "No file path from intent, using app files directory");
+        if (!filePath.contains(File.separator)) {
+            filePath = new File(context.getExternalFilesDir(null), filePath).getAbsolutePath();
+            Log.d(MainActivity.TAG, "No file path from intent, using app external files directory");
         }
+
+        Log.d(MainActivity.TAG, String.format("filePath = %s", filePath));
 
         try {
 
