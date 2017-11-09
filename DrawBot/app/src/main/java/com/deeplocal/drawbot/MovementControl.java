@@ -26,12 +26,10 @@ public class MovementControl {
     private ULN2003 mRightStepper;
     private Servo mPenServo;
 
-    private MainActivity mMainActivity;
     private RobotConfig mRobotConfig;
 
-    public MovementControl(MainActivity mainActivity, RobotConfig robotConfig) {
+    public MovementControl(RobotConfig robotConfig) {
 
-        mMainActivity = mainActivity;
         mRobotConfig = robotConfig;
 
         try {
@@ -55,7 +53,7 @@ public class MovementControl {
     }
 
     // distance in mm
-    public void moveStraight(double distance, boolean isDrawing) {
+    public void moveStraight(double distance) {
 
         int minSpeed = 4000000;
         int maxSpeed = 500000;
@@ -65,15 +63,9 @@ public class MovementControl {
 
 //        constantMotion(steps, isDrawing, Direction.COUNTERCLOCKWISE, Direction.CLOCKWISE);
         smoothMotion(steps, ULN2003Resolution.HALF, Direction.COUNTERCLOCKWISE, Direction.CLOCKWISE, minSpeed, maxSpeed, rampRate);
-
-//        Log.d(TAG, "Done moving straight");
-
-        if (isDrawing) {
-            mMainActivity.pivot();
-        }
     }
 
-    public void turn(double turnDegrees, boolean isDrawing) {
+    public void turn(double turnDegrees) {
 
         int minSpeed = 4200000;
         int maxSpeed = 400000;
@@ -162,12 +154,6 @@ public class MovementControl {
             Thread.sleep(200);
         } catch (InterruptedException e) {
             Log.e(TAG, "Turn could not sleep", e);
-        }
-
-//        Log.d(TAG, "Done turning");
-
-        if (isDrawing) {
-            mMainActivity.drawNextLine();
         }
     }
 

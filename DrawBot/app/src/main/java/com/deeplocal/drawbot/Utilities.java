@@ -121,12 +121,12 @@ public class Utilities {
     }
 
     public static void printLineList(String startString, ArrayList<Line> lines, String endString) {
-        Log.d("oscar", startString);
+        Log.d(TAG, startString);
 
         for (int i = 0; i < lines.size(); i++) {
-            Log.d("oscar", String.format("Line %d: %s", i + 1, lines.get(i).toString()));
+            Log.d(TAG, String.format("Line %d: %s", i + 1, lines.get(i).toString()));
         }
-        Log.d("oscar", endString);
+        Log.d(TAG, endString);
     }
 
     public static String toJsonString(ArrayList<Line> lines) {

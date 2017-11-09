@@ -2,8 +2,6 @@ package com.deeplocal.drawbot;
 
 import android.util.Log;
 
-import com.google.android.things.pio.Gpio;
-import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.contrib.driver.apa102.Apa102;
 
 import java.io.IOException;
@@ -41,6 +39,26 @@ public class PhysicalInterface {
         } catch (IOException e) {
             Log.e(TAG, "Error writing color to LED strip", e);
         }
+    }
+
+    /**
+     * Blocking I/O method to hold the LED on for a specific
+     */
+    public void holdLED(int color, int duration) {
+        writeLED(color);
+        try {
+            Thread.sleep(duration);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "LED could not sleep", e);
+        }
+    }
+
+    /**
+     * Blocking I/O method to blink the LED for a specific duration
+     */
+    public void flashLED(int onColor, int onDuration, int offColor, int offDuration) {
+        holdLED(onColor, onDuration);
+        holdLED(offColor, offDuration);
     }
 
     public void close() {
