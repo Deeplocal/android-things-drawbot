@@ -632,14 +632,14 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         for (int i = 0; i < 100; i++) {
             if (rightTurn) {
                 mDrawingLines.add(new Line(new Point(0, 0), new Point(length - 1, 0), 1));
-                mDrawingLines.add(new Line(new Point(length, 0), new Point(length, length - 1), 1));
-                mDrawingLines.add(new Line(new Point(length, length), new Point(1, length), 1));
-                mDrawingLines.add(new Line(new Point(0, length), new Point(0, 1), 1));
+                mDrawingLines.add(new Line(new Point(length, 0), new Point(length, length - 1), 2));
+                mDrawingLines.add(new Line(new Point(length, length), new Point(1, length), 3));
+                mDrawingLines.add(new Line(new Point(0, length), new Point(0, 1), 2));
             } else {
                 mDrawingLines.add(new Line(new Point(0, 0), new Point(0, length - 1), 1));
-                mDrawingLines.add(new Line(new Point(0, length), new Point(length - 1, length), 1));
-                mDrawingLines.add(new Line(new Point(length, length), new Point(length, 1), 1));
-                mDrawingLines.add(new Line(new Point(length, 0), new Point(1, 0), 1));
+                mDrawingLines.add(new Line(new Point(0, length), new Point(length - 1, length), 2));
+                mDrawingLines.add(new Line(new Point(length, length), new Point(length, 1), 3));
+                mDrawingLines.add(new Line(new Point(length, 0), new Point(1, 0), 2));
             }
         }
 
