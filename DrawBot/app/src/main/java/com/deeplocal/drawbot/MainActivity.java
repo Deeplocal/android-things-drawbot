@@ -513,7 +513,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         // get drawing lines
         ArrayList<Line> copicLines = LineAlgorithm.getCopicLines(faceMat);
-//        Utilities.printLineList("--- START COPIC LINES ---", copicLines, "--- END COPIC LINES ---");
 
         // add lines to move from center to starting point
         // (position at center facing top of page, turn left, move to edge, turn right, move to top, turn right, start drawing)
@@ -554,17 +553,20 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     }
 
     private void startDrawing() {
+
         mState = State.DRAWING;
-        //TODO: Convert line queue into operations set on BG thread
+
         // start drawing in 3 secs
         Log.d(TAG, "Drawing in 3 secs..");
         mPhysicalInterface.holdLED(Color.MAGENTA, 3000);
+
         // begin drawing
         Log.d(TAG, "Begin drawing");
         mPhysicalInterface.writeLED(Color.BLUE);
 
         // Queue up all the drawing ops
         for (int i = 0; i < mDrawingLines.size(); i++) {
+
             // Drawing op
             final Line current = mDrawingLines.get(i);
             final int nextIndex = i+1;
@@ -589,6 +591,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     }
 
     private void stopDrawing() {
+
         Log.d(TAG, "Resetting");
 
         // Clear out the drawing ops queue
@@ -690,9 +693,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         }
 
         infoText(String.format("Drawing %f mm (line %d / %d)", scaledDistance, index, count));
-        Log.d("oscar", String.format("DRAW LINE %s", current.toString()));
 
-        // this function calls MainActivity.this.pivot() when steppers are finished
         mMovementControl.moveStraight(scaledDistance);
     }
 
@@ -707,8 +708,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         double degrees = Utilities.calcDegrees(p1, p2, p3);
 
-        // Log.d("fyi", String.format("degrees = %f", degrees));
-
         // skip turn if none required
         if (degrees == 0) {
             return;
@@ -720,7 +719,6 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         infoText(String.format("Turning %f degrees", degrees));
 
-        // this function calls MainActivity.this.drawNextLine() when steppers are finished
         mMovementControl.turn(degrees);
     }
 
@@ -730,7 +728,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         super.onDestroy();
 
         if (mPhysicalInterface != null) {
-            mPhysicalInterface.writeLED(Color.BLACK); // off?
+            mPhysicalInterface.writeLED(Color.BLACK); // off
             mPhysicalInterface.close();
             mPhysicalInterface = null;
         }

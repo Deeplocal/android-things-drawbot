@@ -29,6 +29,7 @@ public class MovementControl {
     private RobotConfig mRobotConfig;
 
     public MovementControl(RobotConfig robotConfig) {
+
         mRobotConfig = robotConfig;
 
         mLeftStepper = new ULN2003(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2], leftMotorPins[3]);
@@ -58,7 +59,6 @@ public class MovementControl {
 
 //        constantMotion(steps, isDrawing, Direction.COUNTERCLOCKWISE, Direction.CLOCKWISE);
         smoothMotion(steps, ULN2003Resolution.HALF, Direction.COUNTERCLOCKWISE, Direction.CLOCKWISE, minSpeed, maxSpeed, rampRate);
-
     }
 
     public void turn(double turnDegrees) {

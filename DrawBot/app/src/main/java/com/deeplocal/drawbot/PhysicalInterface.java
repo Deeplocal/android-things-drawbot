@@ -2,8 +2,6 @@ package com.deeplocal.drawbot;
 
 import android.util.Log;
 
-import com.google.android.things.pio.Gpio;
-import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.contrib.driver.apa102.Apa102;
 
 import java.io.IOException;
