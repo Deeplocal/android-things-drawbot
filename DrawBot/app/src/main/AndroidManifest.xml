@@ -46,6 +46,8 @@
             </intent-filter>
         </receiver>
 
+        <service android:name=".UpdateCalibrationService" android:exported="false" />
+
     </application>
 
 </manifest>
