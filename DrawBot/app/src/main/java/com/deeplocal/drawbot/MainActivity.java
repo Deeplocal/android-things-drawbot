@@ -197,6 +197,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                 Log.d(TAG, "Button debouncing");
                 return true;
             }
+            mButtonDebouncing = true;
 
             infoText("Button press");
 
@@ -524,10 +525,11 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         int centerX = faceMat.width() / 2;
         int centerY = faceMat.height() / 2;
         Point centerBottom = new Point(centerX, faceMat.height());
+        Point placementPoint = new Point(centerX, centerY+0.1);
         Point centerCenter = new Point(centerX, faceMat.height() / 2);
         Point leftCenter = new Point(0, centerY);
         Point startPoint = copicLines.get(0).getPoint1();
-        copicLines.add(0, new Line(centerBottom, centerCenter, 0));
+        copicLines.add(0, new Line(placementPoint, centerCenter, 0));
         copicLines.add(1, new Line(centerCenter, leftCenter, 0));
         copicLines.add(2, new Line(leftCenter, startPoint, 0));
 

@@ -13,7 +13,7 @@ public class RobotConfig {
     public static final int DEFAULT_SLOPSTEPS_LEFTBACK = 3;
     public static final int DEFAULT_SPACINGADJUST_RIGHT = 0;
     public static final int DEFAULT_SPACINGADJUST_LEFT = 0;
-    public static final int[] DEFAULT_SERVOPOS = { 115, 105, 80, 65 };
+    public static final int[] DEFAULT_SERVOPOS = { 135, 80, 55, 40 };
 
     // known UIDs
     private static final String SAMPLE_ROBOT_UID = "ba1d673987230e12";
@@ -47,11 +47,12 @@ public class RobotConfig {
         mSpacingAdjustRight.put(SAMPLE_ROBOT_UID, 0);
         mSpacingAdjustLeft.put(SAMPLE_ROBOT_UID, 0);
         ArrayList servoPosBR = new ArrayList();
-        servoPosBR.add(115); // line thickness 0
-        servoPosBR.add(105); // line thickness 1
-        servoPosBR.add(80); // line thickness 2
-        servoPosBR.add(65); // line thickness 3
+        servoPosBR.add(105); // line thickness 0
+        servoPosBR.add(93); // line thickness 1
+        servoPosBR.add(45); // line thickness 2
+        servoPosBR.add(27); // line thickness 3
         mServoPos.put(SAMPLE_ROBOT_UID, servoPosBR);
+
     }
 
     public RobotConfig(String uid) {

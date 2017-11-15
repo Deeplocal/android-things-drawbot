@@ -17,7 +17,7 @@ public class MovementControl {
 
     // Tunable Parameters - Distance and Turning
     private static final double STEPS_PER_MM  = 4.46438;  // straight-line conversion
-    private static final double STEPS_PER_DEG = 2.260;     // point-turn conversion
+    private static final double STEPS_PER_DEG = 4.55;     // point-turn conversion
 
     private static final int RAMP_MAX_SLEEP = 6000000;
     private static final int RAMP_MIN_SLEEP = 800000;
@@ -73,15 +73,21 @@ public class MovementControl {
         int steps = (int) (distance * STEPS_PER_MM);
         Log.d(TAG, String.format("Straight: steps = %d", steps));
 
-//        doConstantSteps(steps, RAMP_MAX_SLEEP, DRV8834.Direction.COUNTERCLOCKWISE, DRV8834.Direction.CLOCKWISE);
-        doRampedSteps(steps, DRV8834.Direction.COUNTERCLOCKWISE, DRV8834.Direction.CLOCKWISE);
+        doConstantSteps(steps, RAMP_MAX_SLEEP, DRV8834.Direction.COUNTERCLOCKWISE, DRV8834.Direction.CLOCKWISE);
+//        doRampedSteps(steps, DRV8834.Direction.COUNTERCLOCKWISE, DRV8834.Direction.CLOCKWISE);
 
         Log.d(TAG, "Done moving straight");
     }
 
     public void turn(double turnDegrees) {
 
-        int steps = (int) Math.abs(turnDegrees * STEPS_PER_DEG * 2);
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e2) {
+            e2.printStackTrace();
+        }
+
+        int steps = (int) Math.abs(turnDegrees * STEPS_PER_DEG);
         Log.d(TAG, String.format("Turn: steps = %d for %f degrees", steps, turnDegrees));
 
         DRV8834.Direction direction = DRV8834.Direction.COUNTERCLOCKWISE; // right turn
@@ -91,6 +97,12 @@ public class MovementControl {
 
 //        doConstantSteps(steps, RAMP_MAX_SLEEP, direction, direction);
         doRampedSteps(steps, direction, direction);
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e2) {
+            e2.printStackTrace();
+        }
 
         Log.d(TAG, "Done turning");
     }
@@ -205,8 +217,6 @@ public class MovementControl {
 
                 stepCount++;
             }
-
-            Thread.sleep(100);
 
         } catch (IOException e) {
             e.printStackTrace();
