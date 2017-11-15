@@ -1,0 +1,18 @@
+{
+  "slopSteps": {
+    "rightFwd": 0,
+    "rightBack": 0,
+    "leftFwd": 0,
+    "leftBack": 2
+  },
+  "spacingAdjust": {
+    "right": 0,
+    "left": 0
+  },
+  "servoPos": [
+    135,
+    120,
+    80,
+    60
+  ]
+}

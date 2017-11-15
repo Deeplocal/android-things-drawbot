@@ -88,14 +88,23 @@ public class MovementControl {
         }
 
         int steps = (int) Math.abs(turnDegrees * STEPS_PER_DEG);
-        Log.d(TAG, String.format("Turn: steps = %d for %f degrees", steps, turnDegrees));
 
         DRV8834.Direction direction = DRV8834.Direction.COUNTERCLOCKWISE; // right turn
         if (turnDegrees < 0) {
             direction = DRV8834.Direction.CLOCKWISE; // left turn
         }
 
-//        doConstantSteps(steps, RAMP_MAX_SLEEP, direction, direction);
+        if (turnDegrees < 0) {
+            steps += mRobotConfig.getSlopStepsLeftFwd();
+            steps -= mRobotConfig.getSlopStepsLeftBack();
+        }else {
+            steps += mRobotConfig.getSlopStepsRightFwd();
+            steps -= mRobotConfig.getSlopStepsRightBack();
+        }
+
+        Log.d(TAG, String.format("Turn: steps = %d for %f degrees", steps, turnDegrees));
+
+        //        doConstantSteps(steps, RAMP_MAX_SLEEP, direction, direction);
         doRampedSteps(steps, direction, direction);
 
         try {
