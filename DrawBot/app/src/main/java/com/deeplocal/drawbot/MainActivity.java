@@ -77,6 +77,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private MovementControl mMovementControl;
     private PhysicalInterface mPhysicalInterface;
+    private RobotConfig mRobotConfig;
 
     private DrawMode mDrawMode = DrawMode.NOT_SET;
     private State mState = State.SETUP_NO_PRESSES;
@@ -176,7 +177,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             Log.e(TAG, "Could not initialize camera. (Not connected?)", e);
         }
 
-        mMovementControl = new MovementControl(this);
+        mRobotConfig = RobotConfig.getInstance(this);
+        mMovementControl = new MovementControl(mRobotConfig);
 
         mPhysicalInterface = new PhysicalInterface();
         mPhysicalInterface.writeLED(Color.WHITE);

@@ -40,6 +40,14 @@
             </intent-filter>
         </activity>
 
+        <receiver android:name=".UpdateCalibrationReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="com.deeplocal.drawbot.intent.UPDATE_CALIBRATION"/>
+            </intent-filter>
+        </receiver>
+
+        <service android:name=".UpdateCalibrationService" android:exported="false" />
+
     </application>
 
 </manifest>

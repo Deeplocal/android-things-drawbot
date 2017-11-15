@@ -33,9 +33,9 @@ public class MovementControl {
 
     private RobotConfig mRobotConfig;
 
-    public MovementControl(Context c) {
+    public MovementControl(RobotConfig robotConfig) {
 
-        mRobotConfig = new RobotConfig(null);
+        mRobotConfig = robotConfig;
 
         try {
             mLeftStepper = new DRV8834(leftMotorPins[0], leftMotorPins[1], leftMotorPins[2]);
