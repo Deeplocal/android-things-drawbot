@@ -1,11 +1,19 @@
 package com.deeplocal.drawbot;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -14,6 +22,12 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.GpioCallback;
 import com.google.android.things.pio.PeripheralManagerService;
@@ -41,7 +55,9 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private enum DrawMode {
         NOT_SET,
-        NORMAL,
+        NORMAL_KIOSK_0,
+        NORMAL_KIOSK_1,
+        NORMAL_KIOSK_2,
         RIGHT_TURN_TEST,
         LEFT_TURN_TEST,
         PRESSURE_TEST
@@ -58,6 +74,12 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     }
 
     public static final String TAG = "drawbot";
+
+    public static final String WIFI_SSID = "android-db-5";
+    public static final String WIFI_KEY = "elatedvalley510";
+    public static final String[] SERVER_IPS = { "192.168.1.10:8008", "192.168.1.11:8008", "192.168.1.12:8008" };
+
+    public static int mKioskNum = 0;
 
     private static final String BUTTON_PIN_NAME = "GPIO_174"; // GPIO port wired to the button
     private static final int DEBOUNCE_MILLIS = 333;
@@ -78,6 +100,10 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
     private MovementControl mMovementControl;
     private PhysicalInterface mPhysicalInterface;
     private RobotConfig mRobotConfig;
+
+    private RequestQueue mRequestQueue;
+    private boolean mHasSentPing = false;
+    private boolean mHasFoundServer = false;
 
     private DrawMode mDrawMode = DrawMode.NOT_SET;
     private State mState = State.SETUP_NO_PRESSES;
@@ -185,7 +211,110 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         mDrawingLines = new ArrayList<>();
 
+        mRequestQueue = Volley.newRequestQueue(this);
+        connectToWifi();
+
         infoText("Ready");
+    }
+
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            final String action = intent.getAction();
+
+            if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+
+                NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+                if ((info != null) && info.isConnected()) {
+
+                    WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+
+                    Log.d(TAG, String.format("Wifi connected to %s", wifiInfo.getSSID()));
+
+                    if (wifiInfo.getSSID().equals(String.format("\"%s\"", WIFI_SSID))) {
+                        networkPing();
+                    }
+                } else {
+                    Log.d(TAG, "Wifi disconnected");
+                }
+            }
+        }
+    };
+
+    private void connectToWifi() {
+
+        String wifiConfigSsid = String.format("\"%s\"", WIFI_SSID);
+
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+
+        if (wifiManager.isWifiEnabled()) {
+
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+
+            // return if already connected to this network
+            if ((wifiInfo.getNetworkId() != -1) && (wifiInfo.getSSID().equals(wifiConfigSsid))) {
+                Log.d(TAG, "Already connected to Wifi");
+                networkPing();
+                return;
+            }
+        }
+
+        Log.d(TAG, "Attempting to connect to Wifi");
+
+        WifiConfiguration wifiConfig = new WifiConfiguration();
+        wifiConfig.SSID = String.format("\"%s\"", WIFI_SSID);
+        wifiConfig.preSharedKey = String.format("\"%s\"", WIFI_KEY);
+        int netId = wifiManager.addNetwork(wifiConfig);
+
+        wifiManager.disconnect();
+        wifiManager.enableNetwork(netId, true);
+        wifiManager.reconnect();
+    }
+
+    private void networkPing() {
+
+        if (mHasSentPing)
+            return;
+
+        final String url = "http://" + SERVER_IPS[mKioskNum] + "/ping";
+        StringRequest getRequest = new StringRequest(Request.Method.GET, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d(TAG, "Response = " + response);
+                        if (response.equals("pong")) {
+                            mHasFoundServer = true;
+                            Server.get("/reset", mRequestQueue);
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d(TAG, "Request error = " + error.toString());
+                    }
+                }
+        );
+
+        mRequestQueue.add(getRequest);
+        mHasSentPing = true;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        registerReceiver(mBroadcastReceiver, filter);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterReceiver(mBroadcastReceiver);
     }
 
     private GpioCallback mGpioCallback = new GpioCallback() {
@@ -220,12 +349,16 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                         public void run() {
 
                             int upperBound = 1;
-                            if (mDrawMode == DrawMode.RIGHT_TURN_TEST)
+                            if (mDrawMode == DrawMode.NORMAL_KIOSK_1)
                                 upperBound = 2;
-                            else if (mDrawMode == DrawMode.LEFT_TURN_TEST)
+                            else if (mDrawMode == DrawMode.NORMAL_KIOSK_2)
                                 upperBound = 3;
-                            else if (mDrawMode == DrawMode.PRESSURE_TEST)
+                            else if (mDrawMode == DrawMode.RIGHT_TURN_TEST)
                                 upperBound = 4;
+                            else if (mDrawMode == DrawMode.LEFT_TURN_TEST)
+                                upperBound = 5;
+                            else if (mDrawMode == DrawMode.PRESSURE_TEST)
+                                upperBound = 6;
 
                             // flash kioskNumber # times
                             mPhysicalInterface.holdLED(Color.BLACK, 1000);
@@ -234,7 +367,10 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                             }
 
                             // end setup, ready for normal use
-                            if (mDrawMode == DrawMode.NORMAL) {
+                            if ((mDrawMode == DrawMode.NORMAL_KIOSK_0) ||
+                                    (mDrawMode == DrawMode.NORMAL_KIOSK_1) ||
+                                    (mDrawMode == DrawMode.NORMAL_KIOSK_2)) {
+                                mKioskNum = upperBound - 1;
                                 mState = State.NO_PHOTO;
                                 mPhysicalInterface.writeLED(Color.RED);
                             } else if (mDrawMode == DrawMode.RIGHT_TURN_TEST) {
@@ -251,14 +387,18 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
                 case SETUP_MORE_PRESSES:
 
-                    if (mDrawMode == DrawMode.NORMAL)
+                    if (mDrawMode == DrawMode.NORMAL_KIOSK_0)
+                        mDrawMode = DrawMode.NORMAL_KIOSK_1;
+                    else if (mDrawMode == DrawMode.NORMAL_KIOSK_1)
+                        mDrawMode = DrawMode.NORMAL_KIOSK_2;
+                    else if (mDrawMode == DrawMode.NORMAL_KIOSK_2)
                         mDrawMode = DrawMode.RIGHT_TURN_TEST;
                     else if (mDrawMode == DrawMode.RIGHT_TURN_TEST)
                         mDrawMode = DrawMode.LEFT_TURN_TEST;
                     else if (mDrawMode == DrawMode.LEFT_TURN_TEST)
                         mDrawMode = DrawMode.PRESSURE_TEST;
                     else if ((mDrawMode == DrawMode.PRESSURE_TEST) || (mDrawMode == DrawMode.NOT_SET))
-                        mDrawMode = DrawMode.NORMAL;
+                        mDrawMode = DrawMode.NORMAL_KIOSK_0;
 
                     infoText(String.format("Setup: draw mode = %s", mDrawMode));
 
@@ -467,10 +607,18 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
             // increment number of no faces
             mNumNoFaces += 1;
 
+            if (mHasFoundServer) {
+                Server.networkLog("No faces", mRequestQueue);
+            }
+
             infoText("No faces");
 
             // if we haven't reached max number of missed faces
             if (mNumNoFaces < MAX_MISS_FACES) {
+
+                if (mHasFoundServer) {
+                    Server.get("/error", mRequestQueue);
+                }
 
                 // flag as no photo error and stop
                 mPhysicalInterface.writeLED(Color.RED);
@@ -538,6 +686,12 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         // save drawing lines and update state
         mDrawingLines.clear();
         mDrawingLines.addAll(copicLines);
+
+        // send lines to server
+        if (mHasFoundServer) {
+            Server.sendLines(copicLines, mRequestQueue);
+        }
+
         mState = State.WAITING_TO_DRAW;
         mPhysicalInterface.writeLED(Color.GREEN);
 
@@ -565,7 +719,9 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         mState = State.DRAWING;
 
-        //TODO: Convert line queue into operations set on BG thread
+        if (mHasFoundServer) {
+            Server.get("/drawing", mRequestQueue);
+        }
 
         // start drawing in 3 secs
         Log.d(TAG, "Drawing in 3 secs..");
@@ -584,6 +740,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
             // Drawing op
             final Line current = mDrawingLines.get(i);
+            final int currentIndex = i;
             final int nextIndex = i + 1;
 
             mBackgroundHandler.post(new Runnable() {
@@ -602,7 +759,18 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
                     @Override
                     public void run() {
-                        pivot(current, next);
+                        pivot(current, next, currentIndex);
+                    }
+                });
+            } else {
+                mBackgroundHandler.post(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        if (mHasFoundServer) {
+                            Server.get("/reset", mRequestQueue);
+                        }
                     }
                 });
             }
@@ -619,6 +787,10 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         // do not hold steppers to save battery
         mMovementControl.sleepSteppers(true);
+
+        if (mHasFoundServer) {
+            Server.get("/reset", mRequestQueue);
+        }
 
         mState = State.NO_PHOTO;
         mPhysicalInterface.writeLED(Color.RED);
@@ -707,7 +879,11 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         mMovementControl.moveStraight(scaledDistance);
     }
 
-    public void pivot(Line previous, Line current) {
+    public void pivot(Line previous, Line current, int currentLineIndex) {
+
+        if (mHasFoundServer) {
+            Server.get(String.format("/draw_line?line=%d", currentLineIndex - 1), mRequestQueue);
+        }
 
         Point p1, p2, p3;
 
