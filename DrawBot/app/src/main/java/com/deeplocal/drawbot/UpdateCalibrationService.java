@@ -77,6 +77,11 @@ public class UpdateCalibrationService extends IntentService {
             tuningParams.put(RobotConfig.KEY_SPACING_R, spacingAdjust.getString("right"));
             tuningParams.put(RobotConfig.KEY_SPACING_L, spacingAdjust.getString("left"));
 
+            // add lateral shift adjustments to hashmap
+            JSONObject lateralShift = json.getJSONObject("lateralShift");
+            tuningParams.put(RobotConfig.KEY_SHIFT_R, lateralShift.getString("right"));
+            tuningParams.put(RobotConfig.KEY_SHIFT_L, lateralShift.getString("left"));
+
             // add servo positions to hashmap
             JSONArray servoPos = json.getJSONArray("servoPos");
             String tempServoPos = "";

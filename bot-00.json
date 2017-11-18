@@ -7,7 +7,11 @@
   },
   "spacingAdjust": {
     "right": 0,
-    "left": 0
+    "left": 30
+  },
+  "lateralShift": {
+    "right": 0,
+    "left": 10
   },
   "servoPos": [
     140,
