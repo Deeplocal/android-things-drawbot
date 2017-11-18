@@ -107,6 +107,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private DrawMode mDrawMode = DrawMode.NOT_SET;
     private State mState = State.SETUP_NO_PRESSES;
+    private boolean mSetupComplete = false;
 
     private static final double DRAW_SCALE = 4;
 
@@ -277,9 +278,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private void networkPing() {
 
-        Log.d(TAG, "PING !  ");
 
-        if (mHasSentPing)
+        if (mHasSentPing || !mSetupComplete)
             return;
 
         final String url = "http://" + SERVER_IPS[mKioskNum] + "/ping";
@@ -372,10 +372,13 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                                 mPhysicalInterface.flashLED(Color.BLUE, 200, Color.BLACK, 500);
                             }
 
+                            mSetupComplete = true;
+
                             // end setup, ready for normal use
                             if ((mDrawMode == DrawMode.NORMAL_KIOSK_0) ||
                                     (mDrawMode == DrawMode.NORMAL_KIOSK_1) ||
                                     (mDrawMode == DrawMode.NORMAL_KIOSK_2)) {
+                                networkPing();
                                 mKioskNum = upperBound - 1;
                                 mState = State.NO_PHOTO;
                                 mPhysicalInterface.writeLED(Color.RED);
