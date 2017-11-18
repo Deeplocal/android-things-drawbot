@@ -75,7 +75,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     public static final String TAG = "drawbot";
 
-    public static final String WIFI_SSID = "android-db-5";
+    public static final String WIFI_SSID = "android-db";
     public static final String WIFI_KEY = "elatedvalley510";
     public static final String[] SERVER_IPS = { "192.168.1.10:8008", "192.168.1.11:8008", "192.168.1.12:8008" };
 
@@ -107,6 +107,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private DrawMode mDrawMode = DrawMode.NOT_SET;
     private State mState = State.SETUP_NO_PRESSES;
+    private boolean mSetupComplete = false;
 
     private static final double DRAW_SCALE = 4;
 
@@ -276,7 +277,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private void networkPing() {
 
-        if (mHasSentPing)
+        if (mHasSentPing || !mSetupComplete)
             return;
 
         final String url = "http://" + SERVER_IPS[mKioskNum] + "/ping";
@@ -366,10 +367,13 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                                 mPhysicalInterface.flashLED(Color.BLUE, 200, Color.BLACK, 500);
                             }
 
+                            mSetupComplete = true;
+
                             // end setup, ready for normal use
                             if ((mDrawMode == DrawMode.NORMAL_KIOSK_0) ||
                                     (mDrawMode == DrawMode.NORMAL_KIOSK_1) ||
                                     (mDrawMode == DrawMode.NORMAL_KIOSK_2)) {
+                                networkPing();
                                 mKioskNum = upperBound - 1;
                                 mState = State.NO_PHOTO;
                                 mPhysicalInterface.writeLED(Color.RED);
