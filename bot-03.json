@@ -1,11 +1,15 @@
 {
   "slopSteps": {
-    "rightFwd": 0,
+    "rightFwd": 1,
     "rightBack": 0,
     "leftFwd": 0,
-    "leftBack": 0
+    "leftBack": 1
   },
   "spacingAdjust": {
+    "right": 0,
+    "left": 0
+  },
+    "lateralShift": {
     "right": 0,
     "left": 0
   },

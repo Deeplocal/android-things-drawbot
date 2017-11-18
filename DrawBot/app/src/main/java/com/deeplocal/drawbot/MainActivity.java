@@ -75,7 +75,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     public static final String TAG = "drawbot";
 
-    public static final String WIFI_SSID = "android-db-5";
+    public static final String WIFI_SSID = "android-db";
     public static final String WIFI_KEY = "elatedvalley510";
     public static final String[] SERVER_IPS = { "192.168.1.10:8008", "192.168.1.11:8008", "192.168.1.12:8008" };
 
@@ -235,7 +235,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     Log.d(TAG, String.format("Wifi connected to %s", wifiInfo.getSSID()));
 
                     if (wifiInfo.getSSID().equals(String.format("\"%s\"", WIFI_SSID))) {
-                        networkPing();
+                        Log.d(TAG, "Pinging network...");
+                                networkPing();
                     }
                 } else {
                     Log.d(TAG, "Wifi disconnected");
@@ -276,10 +277,15 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private void networkPing() {
 
+        Log.d(TAG, "PING !  ");
+
         if (mHasSentPing)
             return;
 
         final String url = "http://" + SERVER_IPS[mKioskNum] + "/ping";
+
+        Log.d(TAG, "PING !  " + url);
+
         StringRequest getRequest = new StringRequest(Request.Method.GET, url,
                 new Response.Listener<String>() {
                     @Override

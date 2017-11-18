@@ -73,13 +73,6 @@ public class MovementControl {
     // distance in mm
     public void moveStraight(double distance) {
 
-        if (left_turn_count == 1) {
-            distance -= (mRobotConfig.getSpacingAdjustLeft() / 10.0);
-        }
-        if (right_turn_count == 1) {
-            distance -= (mRobotConfig.getSpacingAdjustRight() / 10.0);
-        }
-
         int steps = (int) (distance * STEPS_PER_MM);
         Log.d(TAG, String.format("Straight: steps = %d", steps));
 
@@ -117,6 +110,13 @@ public class MovementControl {
             steps -= mRobotConfig.getSlopStepsRightBack();
 
         }
+
+//        if (left_turn_count == 1) {
+//            moveStraight(mRobotConfig.getSpacingAdjustLeft() / 10.0);
+//        }
+//        if (right_turn_count == 1) {
+//            distance -= (mRobotConfig.getSpacingAdjustRight() / 10.0);
+//        }
 
         Log.d(TAG, String.format("Turn: steps = %d for %f degrees", steps, turnDegrees));
 
