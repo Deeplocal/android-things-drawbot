@@ -772,6 +772,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     @Override
                     public void run() {
 
+                        // todo: this should be stopDrawing()
+
                         if (mHasFoundServer) {
                             Server.get("/reset", mRequestQueue);
                         }
@@ -883,10 +885,15 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         mMovementControl.moveStraight(scaledDistance);
     }
 
-    public void pivot(Line previous, Line current, int currentLineIndex) {
+    public void pivot(Line previous, Line current, final int currentLineIndex) {
 
         if (mHasFoundServer) {
-            Server.get(String.format("/draw_line?line=%d", currentLineIndex - 1), mRequestQueue);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Server.get(String.format("/draw_line?line=%d", currentLineIndex - 1), mRequestQueue);
+                }
+            });
         }
 
         Point p1, p2, p3;
