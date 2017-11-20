@@ -9,6 +9,10 @@
     "right": 0,
     "left": 0
   },
+    "lateralShift": {
+    "right": 0,
+    "left": 10
+  },
   "servoPos": [
     104,
     85,

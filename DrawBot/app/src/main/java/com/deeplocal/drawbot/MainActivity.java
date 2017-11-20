@@ -236,7 +236,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     Log.d(TAG, String.format("Wifi connected to %s", wifiInfo.getSSID()));
 
                     if (wifiInfo.getSSID().equals(String.format("\"%s\"", WIFI_SSID))) {
-                        networkPing();
+                        Log.d(TAG, "Pinging network...");
+                                networkPing();
                     }
                 } else {
                     Log.d(TAG, "Wifi disconnected");
@@ -277,10 +278,14 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private void networkPing() {
 
+
         if (mHasSentPing || !mSetupComplete)
             return;
 
         final String url = "http://" + SERVER_IPS[mKioskNum] + "/ping";
+
+        Log.d(TAG, "PING !  " + url);
+
         StringRequest getRequest = new StringRequest(Request.Method.GET, url,
                 new Response.Listener<String>() {
                     @Override

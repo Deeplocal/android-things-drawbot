@@ -18,6 +18,8 @@ public class RobotConfig {
     private static final int DEFAULT_SLOPSTEPS_LEFTBACK = 3;
     private static final int DEFAULT_SPACINGADJUST_RIGHT = 0;
     private static final int DEFAULT_SPACINGADJUST_LEFT = 0;
+    private static final int DEFAULT_SHIFT_RIGHT = 0;
+    private static final int DEFAULT_SHIFT_LEFT = 0;
     private static final String DEFAULT_SERVOPOS = "115,105,80,65";
 
     // Configuration store keys
@@ -27,6 +29,8 @@ public class RobotConfig {
     public static final String KEY_SLOP_BACK_L = "slop-steps-back-left";
     public static final String KEY_SPACING_R = "spacing-adjust-right";    // tenths of mm
     public static final String KEY_SPACING_L = "spacing-adjust-left";     // tenths of mm
+    public static final String KEY_SHIFT_L = "lateral-shift-left";        // tenths of mm
+    public static final String KEY_SHIFT_R = "lateral-shift-right";       // tenths of mm
     public static final String KEY_SERVO_POS = "servo-position";
 
     private static RobotConfig sInstance;
@@ -57,6 +61,8 @@ public class RobotConfig {
                 .putInt(KEY_SLOP_BACK_L, getNumericParam(KEY_SLOP_BACK_L, tuningParams))
                 .putInt(KEY_SPACING_R, getNumericParam(KEY_SPACING_R, tuningParams))
                 .putInt(KEY_SPACING_L, getNumericParam(KEY_SPACING_L, tuningParams))
+                .putInt(KEY_SHIFT_L, getNumericParam(KEY_SHIFT_L, tuningParams))
+                .putInt(KEY_SHIFT_R, getNumericParam(KEY_SHIFT_R, tuningParams))
                 .putString(KEY_SERVO_POS, tuningParams.get(KEY_SERVO_POS))
                 .apply();
     }
@@ -105,6 +111,20 @@ public class RobotConfig {
      */
     public int getSpacingAdjustLeft() {
         return mConfigStore.getInt(KEY_SPACING_L, DEFAULT_SPACINGADJUST_LEFT);
+    }
+
+    /**
+     * Return the left lateral shift parameter
+     */
+    public int getLateralShiftLeft() {
+        return mConfigStore.getInt(KEY_SHIFT_L, DEFAULT_SHIFT_LEFT);
+    }
+
+    /**
+     * Return the right lateral shift parameter
+     */
+    public int getLateralShiftRight() {
+        return mConfigStore.getInt(KEY_SHIFT_R, DEFAULT_SHIFT_RIGHT);
     }
 
     /**

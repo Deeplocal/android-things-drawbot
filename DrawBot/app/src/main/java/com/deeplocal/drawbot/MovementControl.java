@@ -27,6 +27,9 @@ public class MovementControl {
     private static final String[] rightMotorPins = { "GPIO_39", "GPIO_37", "GPIO_32" };
     private static final String penServoPin = "PWM1";
 
+    private int right_turn_count = 0;
+    private int left_turn_count = 0;
+
     private DRV8834 mLeftStepper;
     private DRV8834 mRightStepper;
     private Servo mPenServo;
@@ -94,13 +97,26 @@ public class MovementControl {
             direction = DRV8834.Direction.CLOCKWISE; // left turn
         }
 
-        if (turnDegrees < 0) {
+        if (turnDegrees == -90) {   // left
+            right_turn_count = 0;
+            left_turn_count++;
             steps += mRobotConfig.getSlopStepsLeftFwd();
             steps -= mRobotConfig.getSlopStepsLeftBack();
-        }else {
+        }
+        else if (turnDegrees == 90) {   // right
+            left_turn_count = 0;
+            right_turn_count++;
             steps += mRobotConfig.getSlopStepsRightFwd();
             steps -= mRobotConfig.getSlopStepsRightBack();
+
         }
+
+//        if (left_turn_count == 1) {
+//            moveStraight(mRobotConfig.getSpacingAdjustLeft() / 10.0);
+//        }
+//        if (right_turn_count == 1) {
+//            distance -= (mRobotConfig.getSpacingAdjustRight() / 10.0);
+//        }
 
         Log.d(TAG, String.format("Turn: steps = %d for %f degrees", steps, turnDegrees));
 
@@ -114,6 +130,17 @@ public class MovementControl {
         }
 
         Log.d(TAG, "Done turning");
+
+
+        // add any lateral shift correction after a set of double-left or double-right turns
+        if (left_turn_count == 2) {
+            left_turn_count = 0;
+            moveStraight(mRobotConfig.getLateralShiftLeft()/10);
+        }
+        else if (right_turn_count == 2) {
+            right_turn_count = 0;
+            moveStraight(mRobotConfig.getLateralShiftRight()/10);
+        }
     }
 
     private void doConstantSteps(final int numSteps, final int sleepDur, final DRV8834.Direction leftDir, final DRV8834.Direction rightDir) {
