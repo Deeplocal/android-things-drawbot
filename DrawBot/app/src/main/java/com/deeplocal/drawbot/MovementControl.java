@@ -97,13 +97,13 @@ public class MovementControl {
             direction = DRV8834.Direction.CLOCKWISE; // left turn
         }
 
-        if (turnDegrees == -90) {   // left
+        if (Math.round(turnDegrees) == -90) {   // left
             right_turn_count = 0;
             left_turn_count++;
             steps += mRobotConfig.getSlopStepsLeftFwd();
             steps -= mRobotConfig.getSlopStepsLeftBack();
         }
-        else if (turnDegrees == 90) {   // right
+        else if (Math.round(turnDegrees) == 90) {   // right
             left_turn_count = 0;
             right_turn_count++;
             steps += mRobotConfig.getSlopStepsRightFwd();

@@ -1,13 +1,13 @@
 {
   "slopSteps": {
-    "rightFwd": 1,
+    "rightFwd": 0,
     "rightBack": 0,
     "leftFwd": 0,
     "leftBack": 1
   },
   "spacingAdjust": {
-    "right": 0,
-    "left": 0
+    "right": 25,
+    "left": -39
   },
     "lateralShift": {
     "right": 0,
@@ -15,7 +15,7 @@
   },
   "servoPos": [
     105,
-    92,
+    86,
     45,
     37
   ]

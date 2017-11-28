@@ -1,0 +1,52 @@
+**************************************
+Calibration: Symptoms & Fixes
+**************************************
+
+Directions:
+	See below for adjustments based on symptom.
+	After making the changes to the bot-04.json file, upload using the following command, replacing the number to match the bot:
+	./update-calibration.sh bot-04.json 
+	Update is not complete until the terminal reports "Broadcast completed: result=0". This make take a moment or two.
+
+
+1) Lines are not parallel:
+
+	This can be caused by either the left or right turns, being too sharp or not sharp enough. Ideally each turn makes a right angle exactly.
+	Watch the drawbot to determine which direction of turn (right or left) needs adjustnment, and if it should be turning more or less.
+	To turn more, add steps to "slopSteps.____Fwd". To turn less, add steps to "slopSteps.____Back"
+
+
+2) Lines are parallel, but the drawing skews to the left or right side of the page:
+
+	If the drawing skews to the left side of the page over time, add to "lateralShift.left"
+	If the drawing skews to the right side of the page over time, add to "lateralShift.right"
+	These parameters are in tenths of millimeters, so "35" = 3.5 mm
+
+
+3) Spacing between lines is uneven, i.e. pairs of lines are close together or overlapping:
+
+	Watch the drawbot to determine which pairs are close together (left turn or right turns).
+	If the lines before and after a left turn are too close, add to "spacingAdjust.left"
+	If the lines before and after a right turn are too close, add to "spacingAdjust.right"
+	These parameters are in tenths of millimeters, so "35" = 3.5 mm
+	Negative values are allowed, for if lines are too far apart.
+	Don't increase these parameters lower than -39 (-3.9 mm).
+
+
+4) Line thickness seem incorrect:
+	
+	First, make sure the marker is full of ink. A dry marker tip is stiffer and will not be able to flex as much, so it draws all the lines at a similar thickness.
+	Also, make sure that the marker height is set properly, using the blue acrylic key tool.
+	If the marker is freshly inked and height is set, adjustment can be made to each of the servo positions in "servoPos". The first parameter is the uppermost (no draw) position of the marker. The last parameter is the thickest hardest line, and the two intermediates are intermediates.
+
+
+5) Other issues:
+	
+	Change the batteries.
+	Refill the ink (even if it seems unrelated).
+	Check the marker height in the holder using the tool.
+	Check the edges of the paper are flush with the mat.
+	Check that the rear caster ball is rolling smoothly.
+	Check set screws are tight on the motor shafts.
+
+

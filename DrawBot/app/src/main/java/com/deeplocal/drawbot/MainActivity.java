@@ -75,7 +75,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     public static final String TAG = "drawbot";
 
-    public static final String WIFI_SSID = "android-db";
+    public static final String WIFI_SSID = "android-db-5";
     public static final String WIFI_KEY = "elatedvalley510";
     public static final String[] SERVER_IPS = { "192.168.1.10:8008", "192.168.1.11:8008", "192.168.1.12:8008" };
 
@@ -777,6 +777,9 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                     @Override
                     public void run() {
 
+                        mMovementControl.setMarkerPressure(0);
+                        mMovementControl.sleepSteppers(true);
+
                         if (mHasFoundServer) {
                             Server.get("/reset", mRequestQueue);
                         }
@@ -796,6 +799,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         // do not hold steppers to save battery
         mMovementControl.sleepSteppers(true);
+
+        mMovementControl.setMarkerPressure(0);
 
         if (mHasFoundServer) {
             Server.get("/reset", mRequestQueue);
@@ -881,6 +886,19 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         double distance = current.getLength();
         scaledDistance = distance * DRAW_SCALE;
 
+        // check for vertical lines (down the sides) and subtract gap adjustment if needed
+        if (current.getPoint1().x == current.getPoint2().x) {
+            if (current.getPoint1().x < 14) {
+                // left side
+                scaledDistance += mRobotConfig.getSpacingAdjustLeft() / 10.0;
+                Log.d("robert", String.format("Adjusting gap, left side"));
+            } else {
+                // right side
+                scaledDistance += mRobotConfig.getSpacingAdjustRight() / 10.0;
+                Log.d("robert", String.format("Adjusting gap, right side"));
+            }
+        }
+
         infoText(String.format("Drawing %f mm (line %d / %d)", scaledDistance, index, count));
         Log.d("oscar", String.format("DRAW LINE %s", current.toString()));
 
@@ -888,10 +906,15 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
         mMovementControl.moveStraight(scaledDistance);
     }
 
-    public void pivot(Line previous, Line current, int currentLineIndex) {
+    public void pivot(Line previous, Line current, final int currentLineIndex) {
 
         if (mHasFoundServer) {
-            Server.get(String.format("/draw_line?line=%d", currentLineIndex - 1), mRequestQueue);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Server.get(String.format("/draw_line?line=%d", currentLineIndex - 1), mRequestQueue);
+                }
+            });
         }
 
         Point p1, p2, p3;
