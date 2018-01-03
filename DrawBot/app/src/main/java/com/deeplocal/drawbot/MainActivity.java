@@ -378,8 +378,8 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                             if ((mDrawMode == DrawMode.NORMAL_KIOSK_0) ||
                                     (mDrawMode == DrawMode.NORMAL_KIOSK_1) ||
                                     (mDrawMode == DrawMode.NORMAL_KIOSK_2)) {
-                                networkPing();
                                 mKioskNum = upperBound - 1;
+                                networkPing();
                                 mState = State.NO_PHOTO;
                                 mPhysicalInterface.writeLED(Color.RED);
                             } else if (mDrawMode == DrawMode.RIGHT_TURN_TEST) {
