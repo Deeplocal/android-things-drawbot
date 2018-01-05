@@ -6,8 +6,8 @@
     "leftBack": 1
   },
   "spacingAdjust": {
-    "right": 25,
-    "left": -39
+    "right": 30,
+    "left": -33
   },
     "lateralShift": {
     "right": 0,
@@ -15,8 +15,8 @@
   },
   "servoPos": [
     105,
-    86,
-    45,
-    37
+    83,
+    44,
+    27
   ]
 }
