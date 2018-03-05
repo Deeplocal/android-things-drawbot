@@ -6,11 +6,11 @@
     "leftBack": 1
   },
   "spacingAdjust": {
-    "right": 30,
-    "left": -33
+    "right": 32,
+    "left": -29
   },
     "lateralShift": {
-    "right": 0,
+    "right": 15,
     "left": 0
   },
   "servoPos": [

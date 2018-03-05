@@ -10,13 +10,13 @@
     "left": -10
   },
     "lateralShift": {
-    "right": 0,
+    "right": 15,
     "left": 0
   },
   "servoPos": [
     125,
-    90,
+    91,
     20,
-    5
+    0
   ]
 }
