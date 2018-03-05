@@ -70,6 +70,12 @@ public class MovementControl {
         }
     }
 
+    public void blipSteppers(int steps) {
+        doConstantSteps(steps, RAMP_MAX_SLEEP, DRV8834.Direction.CLOCKWISE, DRV8834.Direction.CLOCKWISE);
+        doConstantSteps(steps, RAMP_MAX_SLEEP, DRV8834.Direction.COUNTERCLOCKWISE, DRV8834.Direction.COUNTERCLOCKWISE);
+        Log.d(TAG, "Done with steppers blip");
+    }
+
     // distance in mm
     public void moveStraight(double distance) {
 

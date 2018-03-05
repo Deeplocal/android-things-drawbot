@@ -83,6 +83,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private static final String BUTTON_PIN_NAME = "GPIO_174"; // GPIO port wired to the button
     private static final int DEBOUNCE_MILLIS = 333;
+    private static final int BLIP_STEPPERS_INTERVAL = 30000; // milliseconds
     private static final boolean UPDATE_SCREEN = false;
 
     private Gpio mButtonGpio;
@@ -118,6 +119,33 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
     private static final int MAX_MISS_FACES = 3;
     private int mNumNoFaces = 0;
+
+    private Runnable mBlipSteppersRunnable = new Runnable() {
+
+        @Override
+        public void run() {
+
+            // safety check
+            if (mMovementControl == null) {
+                Log.d(TAG, "mMovementControl = null");
+                return;
+            }
+
+            // safety check
+            if (mBackgroundHandler == null) {
+                Log.d(TAG, "mBackgroundHandler = null");
+                return;
+            }
+
+            // wake, blip, sleep
+            mMovementControl.sleepSteppers(false);
+            mMovementControl.blipSteppers(50);
+            mMovementControl.sleepSteppers(true);
+
+            // call recursively
+            mBackgroundHandler.postDelayed(mBlipSteppersRunnable, BLIP_STEPPERS_INTERVAL);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -214,6 +242,9 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         mRequestQueue = Volley.newRequestQueue(this);
         connectToWifi();
+
+        // schedule stepper blip
+        mBackgroundHandler.postDelayed(mBlipSteppersRunnable, BLIP_STEPPERS_INTERVAL);
 
         infoText("Ready");
     }
@@ -445,6 +476,9 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
                         stopDrawing();
                         break;
                     }
+
+                    // stop blipping while drawing
+                    mBackgroundHandler.removeCallbacks(mBlipSteppersRunnable);
 
                     startDrawing();
                     break;
@@ -776,13 +810,7 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
                     @Override
                     public void run() {
-
-                        mMovementControl.setMarkerPressure(0);
-                        mMovementControl.sleepSteppers(true);
-
-                        if (mHasFoundServer) {
-                            Server.get("/reset", mRequestQueue);
-                        }
+                        stopDrawing();
                     }
                 });
             }
@@ -808,6 +836,9 @@ public class MainActivity extends Activity implements ImageReader.OnImageAvailab
 
         mState = State.NO_PHOTO;
         mPhysicalInterface.writeLED(Color.RED);
+
+        // schedule stepper blip
+        mBackgroundHandler.postDelayed(mBlipSteppersRunnable, BLIP_STEPPERS_INTERVAL);
     }
 
     /*
